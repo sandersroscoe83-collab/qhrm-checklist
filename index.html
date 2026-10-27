@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>QHRM Checklist – Jackson & Black</title>
+<meta name="description" content="Bossa QHRM inspection checklist for Jackson & Black Strand, Tyger Valley and Paarl. Works offline; entries and photos stay on this phone.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121214" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+:root{--bg:#fff;--bg2:#f4f4f5;--tx:#18181b;--tx2:#52525b;--tx3:#8b8b93;--acc:#0b63c5;--ok:#17803d;--warn:#a15c00;--bad:#c4231c;--okS:#e5f5ea;--warnS:#fff3d9;--badS:#fde8e7;--fill2:#ececef;--bd:#d4d4d8;--bds:#e8e8eb;--other:#9aa0a6;--pri:#18181b;--priTx:#fff;--font:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root{--bg:#121214;--bg2:#1c1c20;--tx:#f2f2f4;--tx2:#acacb4;--tx3:#7c7c85;--acc:#6db3ff;--ok:#4cc46e;--warn:#e8b54a;--bad:#ff6b63;--okS:#15301f;--warnS:#3a2d0f;--badS:#3e1716;--fill2:#2a2a2f;--bd:#3b3b42;--bds:#2a2a30;--other:#6b7079;--pri:#f2f2f4;--priTx:#121214}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:230px}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:var(--font);font-size:16px;line-height:1.4}
+button,input,textarea{font:inherit;color:inherit}
+textarea,input{background:var(--bg)}
+textarea::placeholder,input::placeholder{color:var(--tx3)}
+.page{max-width:760px;margin:0 auto;padding:12px 14px calc(40px + env(safe-area-inset-bottom))}
+.ptitle{font-size:22px;line-height:1.25;margin:6px 0 4px}
+.psum{color:var(--tx2);font-size:14px;margin:0 0 10px}
+.sec{margin-top:26px}
+.sec h2{font-size:19px;margin:0 0 10px}
+.sech{display:block;width:100%;text-align:left;background:none;border:0;padding:6px 0;cursor:pointer}
+.sech h2{margin:0}
+.secb{display:flex;flex-direction:column;gap:12px}
+.txt{margin:0;color:var(--tx)}
+.nl{margin:0;padding-left:22px}.nl li{margin:4px 0}
+.callout{padding:12px 14px;border-radius:12px;border:1px solid var(--bd);margin:8px 0}
+.callout.danger{background:var(--badS);border-color:var(--bad);color:var(--bad)}
+.note{padding:10px 12px;border-radius:10px;border:1px solid var(--acc);margin:8px 0;font-size:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{min-height:44px;padding:0 14px;border-radius:8px;border:1px solid var(--bd);background:var(--bg2);cursor:pointer;font-size:15px;font-weight:500;touch-action:manipulation}
+.btn.pri{background:var(--pri);color:var(--priTx);border-color:var(--pri)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn:active,.seg button:active{transform:scale(.98)}
+.seg{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--bd);border-radius:10px;overflow:hidden}
+.seg button{flex:1 1 0;min-height:46px;border:0;border-left:1px solid var(--bd);background:transparent;color:var(--tx2);cursor:pointer;font-size:15px;padding:0 8px;touch-action:manipulation}
+.seg button:first-child{border-left:0}
+.seg button.on{background:var(--pri);color:var(--priTx);font-weight:600}
+.seg .cnt{margin-left:6px;font-size:12px;opacity:.75}
+.inp{display:flex;flex-direction:column;gap:4px}
+.inp .lab{font-size:14px;color:var(--tx2)}
+.inp input{min-height:46px;padding:0 12px;font-size:16px;border:1px solid var(--bd);border-radius:8px;width:100%}
+input:focus,textarea:focus{outline:2px solid var(--acc);outline-offset:-1px}
+.tblw{overflow-x:auto}
+.tbl{border-collapse:collapse;width:100%;font-size:14px}
+.tbl th,.tbl td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--bds);vertical-align:top}
+.tbl th{color:var(--tx2);font-weight:600}
+.tone{display:inline-block;min-width:24px;text-align:center;border-radius:6px;font-weight:600;padding:0 6px}
+.tone.success{background:var(--okS);color:var(--ok)}.tone.warning{background:var(--warnS);color:var(--warn)}.tone.danger{background:var(--badS);color:var(--bad)}
+.toc{display:flex;flex-wrap:wrap;gap:6px 14px;margin:14px 0 4px;font-size:14px}
+.toc a{color:var(--acc);text-decoration:none;padding:6px 0}
+.foot{margin-top:30px;font-size:12px;color:var(--tx3);text-align:center}
+.boot{padding:40px 16px;text-align:center;color:var(--tx2)}
+</style>
+</head>
+<body>
+<div id="app"><div class="boot">Loading the QHRM checklist…</div></div>
+<noscript><p class="boot">This checklist needs JavaScript.</p></noscript>
+<script src="vendor/preact-htm.js"></script>
+<script src="app.js"></script>
+<script>
+// Offline support. A new version (new CACHE in sw.js) installs in the background; the app then offers Reload.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("./sw.js").then(function (reg) {
+      reg.addEventListener("updatefound", function () {
+        var w = reg.installing;
+        if (!w) return;
+        w.addEventListener("statechange", function () {
+          if (w.state === "installed" && navigator.serviceWorker.controller) {
+            window.__qhrmUpdate = true;
+            window.dispatchEvent(new Event("qhrm-update"));
+          }
+        });
+      });
+    }).catch(function () { /* still works online without offline support */ });
+  });
+}
+</script>
+</body>
+</html>
