@@ -29,13 +29,22 @@ All paths are relative, so it works from any sub-path. Test locally with `python
 - Which sections are open is remembered on the phone under `qhrm-collapsed-v1` (display only:
   not part of entries, backups or exports).
 
-## Deleting a report
-- **Export and backup → Danger zone → Delete this report…** deletes the current inspection's
-  answers and its photos (frees space) and starts a blank checklist; store details are kept.
-- Drafts of other stores (under Store details) each have a **Delete … draft…** button.
-- Both ask twice: a dialog with the store, date, number of items and photos and a
-  **Save backup first** button, then you must type DELETE. Other stores' drafts and the store
-  profiles are never touched.
+## Clearing entries
+- **Export and backup → Danger zone → Clear entries…** clears what was entered for the current
+  store's inspection and keeps the checklist, the selected store and its store details.
+- Drafts of other stores (under Store details) each have a **Clear <Store> entries…** button with
+  the same rule.
+- Cleared: every A/B/C/N/A grade, portion weights, counts / par / top-up, item comments and repeat
+  marks, section grades, section comments, the overall and non-conformance grades and comments,
+  the sign-off fields, the inspection Date & time, Letter date, This grading, Foodcost %, and that
+  store's photos (removed from the phone, freeing space).
+- Kept: the selected store and the store details / letter header: restaurant name, address,
+  owner, Attention, greeting (Dear ...), management team, last grading, letter signer and
+  signer's company. Store profiles and other stores' drafts are never touched.
+- Both ask twice: a dialog naming the store and how many answered items and photos go, with a
+  **Save backup first** button; then you must type CLEAR.
+- To undo a single grade, tap the selected grade again. To remove one photo, tap its thumbnail,
+  then **Delete photo** and **Tap again to delete**.
 
 ## Backups
 - **Save backup to phone** opens the Android share sheet (OneDrive, WhatsApp, email, Files).
