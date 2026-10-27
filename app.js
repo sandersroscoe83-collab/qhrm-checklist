@@ -1558,7 +1558,7 @@
         setView(null);
       } }), /* @__PURE__ */ h("span", { style: { ...muted, fontSize: 12 } }, vi + 1, " / ", ps.length, " · ", new Date(cur2.ts).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })))) : null);
     };
-    return /* @__PURE__ */ h(Page, { title: "J&B Inspections", width: "column" }, upd ? /* @__PURE__ */ h("div", { class: "note", role: "status" }, "A new version of the app is ready. Your entries are saved. ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => window.location.reload() }, "Reload")) : null, inst ? /* @__PURE__ */ h("div", { class: "note" }, "Install the checklist on this phone for offline use and safer storage. ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => {
+    return /* @__PURE__ */ h(Page, { title: "Jackson and Black QHRM", width: "column" }, upd ? /* @__PURE__ */ h("div", { class: "note", role: "status" }, "A new version of the app is ready. Your entries are saved. ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => window.location.reload() }, "Reload")) : null, inst ? /* @__PURE__ */ h("div", { class: "note" }, "Install the checklist on this phone for offline use and safer storage. ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => {
       inst.prompt();
       inst.userChoice.then(() => {
         setInst(null);
