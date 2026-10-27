@@ -7,7 +7,7 @@
   const useEffect = PR.useEffect;
   const useMemo = PR.useMemo;
   const useRef = PR.useRef;
-  const APP_VERSION = "1.1.5";
+  const APP_VERSION = "1.1.6";
   const TH = {
     fill: { successSubtle: "var(--okS)", warningSubtle: "var(--warnS)", dangerSubtle: "var(--badS)", secondary: "var(--fill2)" },
     text: { success: "var(--ok)", warning: "var(--warn)", danger: "var(--bad)", primary: "var(--tx)", secondary: "var(--tx2)", tertiary: "var(--tx3)", accent: "var(--acc)" },
@@ -22,7 +22,7 @@
     return TH;
   }
   function Page(props) {
-    return /* @__PURE__ */ h("main", { class: "page" }, /* @__PURE__ */ h("h1", { class: "ptitle" }, props.title), props.summary ? /* @__PURE__ */ h("p", { class: "psum" }, props.summary) : null, props.children);
+    return /* @__PURE__ */ h("main", { class: "page" }, /* @__PURE__ */ h("div", { class: "phead" }, /* @__PURE__ */ h("h1", { class: "ptitle" }, props.title), /* @__PURE__ */ h("span", { class: "plogo" }, /* @__PURE__ */ h("img", { src: "jb-logo.svg", alt: "Jackson & Black", width: "100", height: "36" }))), props.summary ? /* @__PURE__ */ h("p", { class: "psum" }, props.summary) : null, props.children);
   }
   function Section(props) {
     const [o, setO] = useState(props.defaultOpen !== false);
