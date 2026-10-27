@@ -65,3 +65,4 @@ All paths are relative, so it works from any sub-path. Test locally with `python
   Save (share / save to phone) and Download buttons; tap the line for details. Storage, persistence and photo status
   are in Export and backup. A short red line stays in the bar if saving is off or storage is not persistent.
 - v1.1.4: the intro paragraph under the page title is no longer shown.
+- v1.1.5: the help paragraphs in Store details and Letter date are no longer shown (fields and buttons unchanged).
