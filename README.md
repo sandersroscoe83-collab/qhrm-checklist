@@ -20,6 +20,23 @@ entries, IndexedDB for photos; persistent storage is requested on first use).
 3. Open `https://<user>.github.io/<repo>/` in Chrome on the phone → menu → **Add to Home screen / Install app**.
 All paths are relative, so it works from any sub-path. Test locally with `python3 -m http.server`.
 
+## Checklist sections
+- Tap a section heading to open or close it (▼ open, ▶ closed); a closed heading still shows
+  "done/total" and its A/B/C/N/A counts. Every open section ends with a **Collapse section ▲**
+  button that closes it and scrolls back to its heading. **Collapse all / Expand all** sit above
+  the sections. Search and filters open matching sections; "Go to item in checklist" in Findings
+  opens the item's section and scrolls to it.
+- Which sections are open is remembered on the phone under `qhrm-collapsed-v1` (display only:
+  not part of entries, backups or exports).
+
+## Deleting a report
+- **Export and backup → Danger zone → Delete this report…** deletes the current inspection's
+  answers and its photos (frees space) and starts a blank checklist; store details are kept.
+- Drafts of other stores (under Store details) each have a **Delete … draft…** button.
+- Both ask twice: a dialog with the store, date, number of items and photos and a
+  **Save backup first** button, then you must type DELETE. Other stores' drafts and the store
+  profiles are never touched.
+
 ## Backups
 - **Save backup to phone** opens the Android share sheet (OneDrive, WhatsApp, email, Files).
   Android only shares certain file types, so it may be shared as `QHRM_<Store>_<YYYY-MM-DD>_backup.txt`;

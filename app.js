@@ -7,7 +7,7 @@
   const useEffect = PR.useEffect;
   const useMemo = PR.useMemo;
   const useRef = PR.useRef;
-  const APP_VERSION = "1.0.0";
+  const APP_VERSION = "1.1.0";
   const TH = {
     fill: { successSubtle: "var(--okS)", warningSubtle: "var(--warnS)", dangerSubtle: "var(--badS)", secondary: "var(--fill2)" },
     text: { success: "var(--ok)", warning: "var(--warn)", danger: "var(--bad)", primary: "var(--tx)", secondary: "var(--tx2)", tertiary: "var(--tx3)", accent: "var(--acc)" },
@@ -149,6 +149,26 @@
     return ("0" + n).slice(-2);
   }
   const BKEY = "qhrm-last-backup-v1";
+  const CKEY = "qhrm-collapsed-v1";
+  function loadOpen() {
+    const o = {};
+    try {
+      const raw = window.localStorage.getItem(CKEY);
+      const j = raw ? JSON.parse(raw) : null;
+      const c = j && typeof j === "object" && j.collapsed && typeof j.collapsed === "object" ? j.collapsed : {};
+      for (const k of Object.keys(c)) if (c[k] === false) o[k] = true;
+    } catch (e) {
+    }
+    return o;
+  }
+  function saveOpen(open) {
+    const c = {};
+    for (const s of SECS) c[s.id] = !open[s.id];
+    try {
+      window.localStorage.setItem(CKEY, JSON.stringify({ v: 1, collapsed: c }));
+    } catch (e) {
+    }
+  }
   const XKEY = "qhrm-dirty-v1";
   const REMIND_N = 12;
   const REMIND_MS = 15 * 60 * 1e3;
@@ -525,7 +545,13 @@
     const [vals, setVals] = useState(init.vals);
     const [ok, setOk] = useState(init.ok);
     const [savedAt, setSavedAt] = useState("");
-    const [open, setOpen] = useState({});
+    const [open, setOpenRaw] = useState(() => loadOpen());
+    const setOpen = (o) => {
+      setOpenRaw(o);
+      saveOpen(o);
+    };
+    const [fc, setFc] = useState({});
+    const jumpRef = useRef("");
     const [notes, setNotes] = useState({});
     const [filter, setFilter] = useState("all");
     const [query, setQuery] = useState("");
@@ -537,6 +563,9 @@
     const [swArm, setSwArm] = useState("");
     const [rsArm, setRsArm] = useState(false);
     const [smsg, setSmsg] = useState("");
+    const [delT, setDelT] = useState(null);
+    const [delTxt, setDelTxt] = useState("");
+    const [delMsg, setDelMsg] = useState("");
     const cur = vals["d:store"] || "";
     const curS = storeOf(cur);
     const photos = useMemo(() => allPhotos.filter((p) => (p.st || "") === cur), [allPhotos, cur]);
@@ -1017,6 +1046,50 @@
     const secStats = useMemo(() => SECS.map((s) => stats(s.items, vals)), [vals]);
     const all = secStats.reduce((a, s) => ({ done: a.done + s.done, total: a.total + s.total, A: a.A + s.A, B: a.B + s.B, C: a.C + s.C, NA: a.NA + s.NA }), { done: 0, total: 0, A: 0, B: 0, C: 0, NA: 0 });
     const ql = query.trim().toLowerCase();
+    useEffect(() => {
+      setFc({});
+    }, [filter, ql]);
+    const filteringNow = filter !== "all" || !!ql;
+    const isSecOpen = (id) => filteringNow ? !fc[id] : !!open[id];
+    const scrollToEl = (elId) => {
+      const go = () => {
+        const el = document.getElementById(elId);
+        if (el) el.scrollIntoView({ block: "start" });
+      };
+      window.requestAnimationFrame(() => window.requestAnimationFrame(go));
+    };
+    const setSec = (id, o) => {
+      if (filteringNow) setFc({ ...fc, [id]: !o });
+      else setOpen({ ...open, [id]: o });
+    };
+    const collapseSec = (id) => {
+      setSec(id, false);
+      scrollToEl("sec-" + id);
+    };
+    const openAll = (o) => {
+      const m = {};
+      if (o) SECS.forEach((s) => {
+        m[s.id] = true;
+      });
+      setOpen(m);
+      const f = {};
+      if (!o) SECS.forEach((s) => {
+        f[s.id] = true;
+      });
+      setFc(f);
+    };
+    const jumpTo = (secId, itemId) => {
+      const s = SECS.find((x) => x.id === secId);
+      const it = s ? s.items.find((x) => x.id === itemId) : void 0;
+      if (s && it && !visible(s, it)) {
+        setFilter("all");
+        setQuery("");
+      }
+      setOpen({ ...open, [secId]: true });
+      setFc({ ...fc, [secId]: false });
+      jumpRef.current = itemId;
+      scrollToEl("it-" + itemId);
+    };
     const visible = (s, it) => {
       if (filter === "todo" && isDone(it, vals)) return false;
       if (filter === "bc" && vals[it.id + ":g"] !== "B" && vals[it.id + ":g"] !== "C") return false;
@@ -1129,6 +1202,88 @@
     }).filter((d) => d.n > 0 || d.p > 0);
     const muted = { fontSize: 13, color: th.text.secondary, fontFamily: th.font.family };
     const linkBtn = { background: "transparent", border: "none", padding: "8px 0", color: th.text.accent, fontSize: 14, fontFamily: th.font.family, cursor: "pointer" };
+    const dangerBtn = { minHeight: 48, padding: "0 16px", borderRadius: th.radius.md, border: "2px solid " + th.text.danger, background: th.fill.dangerSubtle, color: th.text.danger, fontFamily: th.font.family, fontSize: 15, fontWeight: th.weight.semibold, cursor: "pointer", touchAction: "manipulation" };
+    const delInfo = (st) => {
+      const isCur = st === cur;
+      const v = isCur ? vals : migrate(readJson(DKEY + st) || {});
+      const s = storeOf(st);
+      const items = SECS.reduce((a, x) => a + stats(x.items, v).done, 0);
+      return { label: s ? s.label : v["d:name"] || "No store picked", date: isoDay(v), items, n: entryCount(v), p: allPhotos.filter((x) => (x.st || "") === st).length, v };
+    };
+    const askDelete = (st) => {
+      setDelMsg("");
+      setDelTxt("");
+      setDelT({ st, step: 1 });
+    };
+    const backupFirst = (st) => {
+      if (st === cur) {
+        shareBackup();
+        return;
+      }
+      const d = delInfo(st);
+      const s = storeOf(st);
+      const ps = allPhotos.filter((x) => (x.st || "") === st);
+      download("QHRM_" + (s ? s.file : "Store") + "_" + d.date + "_backup.json", JSON.stringify({ v: 2, store: st, storeName: s ? s.label : d.v["d:name"] || "", vals: d.v, photos: ps }), "application/json", false);
+    };
+    const doDelete = async (st) => {
+      const d = delInfo(st);
+      const isCur = st === cur;
+      let okDel = true;
+      if (st) {
+        try {
+          window.localStorage.removeItem(DKEY + st);
+        } catch (e) {
+          okDel = false;
+        }
+      }
+      const gone = allRef.current.filter((x) => (x.st || "") === st);
+      const keep = allRef.current.filter((x) => (x.st || "") !== st);
+      allRef.current = keep;
+      setPhotos(keep);
+      setView(null);
+      const db = dbRef.current;
+      if (db && gone.length) {
+        try {
+          await idbTx(db, (s2) => {
+            gone.forEach((x) => s2.delete(x.id));
+          });
+        } catch (e) {
+          okDel = false;
+        }
+      }
+      if (isCur) {
+        setVals(cur ? { ...storeDetails(cur, true), "d:store": cur } : { ...DEFAULTS });
+        setNotes({});
+        setOpen({});
+        setFc({});
+        setFilter("all");
+        setQuery("");
+        setExportText("");
+        setArm(false);
+      }
+      clearDirty(st || "_");
+      setDelT(null);
+      setDelTxt("");
+      setDelMsg("Report deleted: " + d.label + " (" + d.date + "), " + d.items + " answered item(s) and " + d.p + " photo(s) removed from this phone." + (isCur ? " The checklist is blank; store details are kept." : "") + " Other stores' drafts and store details are untouched." + (okDel ? "" : " Warning: some data could not be removed from device storage."));
+      if (isCur) scrollToEl("checklist");
+    };
+    const delDialog = (() => {
+      if (!delT) return null;
+      const d = delInfo(delT.st);
+      const typed = delTxt.trim().toUpperCase() === "DELETE";
+      return /* @__PURE__ */ h("div", { "data-t": "del-dialog", role: "alertdialog", "aria-modal": "true", "aria-label": "Delete report", style: { position: "fixed", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 } }, /* @__PURE__ */ h("div", { style: { width: "100%", maxWidth: 440, background: th.bg.base, color: th.text.primary, border: "2px solid " + th.text.danger, borderRadius: th.radius.lg, padding: 18, fontFamily: th.font.family, boxShadow: "0 10px 40px rgba(0,0,0,0.5)" } }, /* @__PURE__ */ h("div", { style: { fontSize: 18, fontWeight: th.weight.semibold, color: th.text.danger, marginBottom: 8 } }, delT.step === 1 ? "Delete this report?" : "Are you sure? This cannot be undone."), /* @__PURE__ */ h("div", { "data-t": "del-summary", style: { fontSize: 15, lineHeight: "21px", marginBottom: 12 } }, d.label + " · " + d.date + ": " + d.items + " of " + TOTAL + " items answered (" + d.n + (d.n === 1 ? " entry" : " entries") + ") and " + d.p + " photo(s) will be deleted from this phone. Store details and other stores' drafts are kept."), delT.step === 1 ? /* @__PURE__ */ h("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ h(Button, { label: "Save backup first", variant: "primary", onClick: () => backupFirst(delT.st) }), bkMsg && delT.st === cur ? /* @__PURE__ */ h("div", { style: { ...muted } }, bkMsg) : null, /* @__PURE__ */ h("button", { type: "button", style: dangerBtn, onClick: () => {
+        setDelTxt("");
+        setDelT({ st: delT.st, step: 2 });
+      } }, "Delete"), /* @__PURE__ */ h(Button, { label: "Cancel", onClick: () => {
+        setDelT(null);
+        setDelTxt("");
+      } })) : /* @__PURE__ */ h("div", { style: { display: "flex", flexDirection: "column", gap: 10 } }, /* @__PURE__ */ h("label", { class: "inp" }, /* @__PURE__ */ h("span", { class: "lab" }, "Type DELETE to confirm"), /* @__PURE__ */ h("input", { "data-t": "del-type", value: delTxt, autoComplete: "off", autoCapitalize: "characters", placeholder: "DELETE", onInput: (e) => setDelTxt(e.target.value) })), /* @__PURE__ */ h("button", { type: "button", "data-t": "del-final", disabled: !typed, style: { ...dangerBtn, background: typed ? th.text.danger : th.fill.dangerSubtle, color: typed ? th.bg.base : th.text.danger, opacity: typed ? 1 : 0.5, cursor: typed ? "pointer" : "default" }, onClick: () => {
+        if (typed) doDelete(delT.st);
+      } }, "Delete permanently"), /* @__PURE__ */ h(Button, { label: "Cancel", onClick: () => {
+        setDelT(null);
+        setDelTxt("");
+      } }))));
+    })();
     const shareReport = async () => {
       const name = stamp + "_findings.html";
       try {
@@ -1193,13 +1348,7 @@
       onFiles(e);
     }, style: { display: "none" } }), /* @__PURE__ */ h("input", { ref: fileRef, type: "file", accept: ".json,application/json,text/plain", onChange: (e) => onRestoreFile(e), style: { display: "none" } }), /* @__PURE__ */ h(TableOfContents, { items: [{ label: "Store details", id: "details" }, { label: "Automatic C grading", id: "autoc" }, { label: "Checklist", id: "checklist" }, { label: "Findings (B & C)", id: "findings" }, { label: "Gradings and sign-off", id: "gradings" }, { label: "Export and backup", id: "export" }, { label: "How grading works", id: "notes" }] }), /* @__PURE__ */ h(Section, { heading: "Store details", id: "details" }, /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, marginBottom: 6 } }, "Store being inspected"), /* @__PURE__ */ h(Segmented, { options: STORES.map((s) => ({ value: s.id, label: s.short })), value: cur, onChange: (x) => askSwitch(x) }), /* @__PURE__ */ h("div", { style: { ...muted, marginTop: 6 } }, curS ? curS.label : "No store picked yet. Pick the store to fill in its details" + (entryCount(vals) > 0 || photos.length > 0 ? "; the entries already on this page will become that store's inspection." : ".")), swArm ? /* @__PURE__ */ h("div", { style: { marginTop: 8, padding: 10, border: "1px solid " + th.border.default, borderRadius: th.radius.md } }, /* @__PURE__ */ h("div", { style: { fontSize: 14, color: th.text.primary, marginBottom: 8 } }, cur ? "Switch to " + sLabel(swArm) + "? The " + sLabel(cur) + " entries (" + entryCount(vals) + ") and photos (" + photos.length + ") stay saved on this device as a draft; pick " + (curS ? curS.short : "it") + " again to carry on." + (ok ? "" : " Warning: this browser cannot save on the device, so download a full backup first.") : "Pick " + sLabel(swArm) + "? The " + entryCount(vals) + " entries and " + photos.length + " photo(s) on this page become the " + sLabel(swArm) + " inspection."), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: (cur ? "Switch to " : "Use for ") + sLabel(swArm), variant: "primary", onClick: () => {
       doSwitch(swArm);
-    } }), /* @__PURE__ */ h(Button, { label: "Cancel", onClick: () => setSwArm("") }))) : null, drafts.length ? /* @__PURE__ */ h("div", { style: { ...muted, marginTop: 6 } }, "Drafts kept on this device: " + drafts.map((d) => d.s.short + " (" + d.n + " entries, " + d.p + " photos)").join("; ")) : null, smsg ? /* @__PURE__ */ h("div", { style: { fontSize: 13, color: th.text.accent, marginTop: 6 } }, smsg) : null), DETAILS.map(([k, lab]) => k === "addr" ? /* @__PURE__ */ h("div", { key: k, style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14 } }, lab), /* @__PURE__ */ h(NoteBox, { value: vals["d:" + k] || "", onChange: (x) => set("d:" + k, x), placeholder: DETAIL_HINT[k] || "" })) : /* @__PURE__ */ h(Input, { key: k, label: lab, value: vals["d:" + k] || "", onChange: (x) => set("d:" + k, x), placeholder: DETAIL_HINT[k] })), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Set letter date to today", onClick: () => set("d:ldate", (/* @__PURE__ */ new Date()).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })) }), curS ? /* @__PURE__ */ h(Button, { label: rsArm ? "Tap again to reset " + curS.short + " details" : "Reset store details to defaults", onClick: () => resetStore() }) : null), /* @__PURE__ */ h("div", { style: muted }, "Picking a store fills in its name, address, Attention, owner, greeting, management team and last grading. Changes you make to these are remembered for that store on this device and filled in next time; Reset puts back the defaults. Defaults come from the QHRM letters: Strand from the 16 Sept 2026 letter, Tyger Valley from the 20 July 2026 letter (management team blank, as on that letter). Paarl has only its address, from the liquor licence renewal notice; fill in its owners and team once. Each store keeps its own entries and photos, so switching store does not wipe another store's draft."), /* @__PURE__ */ h("div", { style: muted }, "The letter fields (letter date, address, attention, greeting, signer) are used by the QHRM letter generator. A blank letter date means the date the letter is generated; blank signer fields default to Roscoe Sanders, Bossa Group.")), /* @__PURE__ */ h(Section, { heading: "Automatic C grading", id: "autoc", collapsible: true, defaultOpen: false }, /* @__PURE__ */ h(Text, null, "Major non-conformance to required operational standards of Bossa may result in an automatic C grading for the entire section or the overall report, with specific reference to:"), /* @__PURE__ */ h(NumberedList, { items: AUTO_C })), /* @__PURE__ */ h(Section, { heading: "Checklist", id: "checklist" }, /* @__PURE__ */ h(Segmented, { options: [{ value: "all", label: "All" }, { value: "todo", label: "To do", count: TOTAL - all.done }, { value: "bc", label: "B & C", count: all.B + all.C }], value: filter, onChange: (x) => setFilter(x) }), /* @__PURE__ */ h(Input, { value: query, onChange: (x) => setQuery(x), placeholder: "Search items or sections" }), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Expand all", onClick: () => {
-      const o = {};
-      SECS.forEach((s) => {
-        o[s.id] = true;
-      });
-      setOpen(o);
-    } }), /* @__PURE__ */ h(Button, { label: "Collapse all", onClick: () => setOpen({}) })), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, AREAS.map((area) => {
+    } }), /* @__PURE__ */ h(Button, { label: "Cancel", onClick: () => setSwArm("") }))) : null, drafts.length ? /* @__PURE__ */ h("div", { style: { ...muted, marginTop: 6 } }, "Drafts kept on this device: " + drafts.map((d) => d.s.short + " (" + d.n + " entries, " + d.p + " photos)").join("; ")) : null, drafts.length ? /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 } }, drafts.map((d) => /* @__PURE__ */ h("button", { key: d.s.id, type: "button", "data-t": "del-draft-" + d.s.id, style: { ...dangerBtn, minHeight: 44, fontSize: 14 }, onClick: () => askDelete(d.s.id) }, "🗑 Delete " + d.s.short + " draft…"))) : null, delMsg ? /* @__PURE__ */ h("div", { role: "status", style: { fontSize: 13, color: th.text.danger, marginTop: 6 } }, delMsg) : null, smsg ? /* @__PURE__ */ h("div", { style: { fontSize: 13, color: th.text.accent, marginTop: 6 } }, smsg) : null), DETAILS.map(([k, lab]) => k === "addr" ? /* @__PURE__ */ h("div", { key: k, style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14 } }, lab), /* @__PURE__ */ h(NoteBox, { value: vals["d:" + k] || "", onChange: (x) => set("d:" + k, x), placeholder: DETAIL_HINT[k] || "" })) : /* @__PURE__ */ h(Input, { key: k, label: lab, value: vals["d:" + k] || "", onChange: (x) => set("d:" + k, x), placeholder: DETAIL_HINT[k] })), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Set letter date to today", onClick: () => set("d:ldate", (/* @__PURE__ */ new Date()).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })) }), curS ? /* @__PURE__ */ h(Button, { label: rsArm ? "Tap again to reset " + curS.short + " details" : "Reset store details to defaults", onClick: () => resetStore() }) : null), /* @__PURE__ */ h("div", { style: muted }, "Picking a store fills in its name, address, Attention, owner, greeting, management team and last grading. Changes you make to these are remembered for that store on this device and filled in next time; Reset puts back the defaults. Defaults come from the QHRM letters: Strand from the 16 Sept 2026 letter, Tyger Valley from the 20 July 2026 letter (management team blank, as on that letter). Paarl has only its address, from the liquor licence renewal notice; fill in its owners and team once. Each store keeps its own entries and photos, so switching store does not wipe another store's draft."), /* @__PURE__ */ h("div", { style: muted }, "The letter fields (letter date, address, attention, greeting, signer) are used by the QHRM letter generator. A blank letter date means the date the letter is generated; blank signer fields default to Roscoe Sanders, Bossa Group.")), /* @__PURE__ */ h(Section, { heading: "Automatic C grading", id: "autoc", collapsible: true, defaultOpen: false }, /* @__PURE__ */ h(Text, null, "Major non-conformance to required operational standards of Bossa may result in an automatic C grading for the entire section or the overall report, with specific reference to:"), /* @__PURE__ */ h(NumberedList, { items: AUTO_C })), /* @__PURE__ */ h(Section, { heading: "Checklist", id: "checklist" }, delMsg ? /* @__PURE__ */ h("div", { class: "note", role: "status", "data-t": "del-msg", style: { borderColor: th.text.danger } }, delMsg, " ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => setDelMsg("") }, "OK")) : null, /* @__PURE__ */ h(Segmented, { options: [{ value: "all", label: "All" }, { value: "todo", label: "To do", count: TOTAL - all.done }, { value: "bc", label: "B & C", count: all.B + all.C }], value: filter, onChange: (x) => setFilter(x) }), /* @__PURE__ */ h(Input, { value: query, onChange: (x) => setQuery(x), placeholder: "Search items or sections" }), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Collapse all", onClick: () => openAll(false) }), /* @__PURE__ */ h(Button, { label: "Expand all", onClick: () => openAll(true) })), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, AREAS.map((area) => {
       const secs = SECS.filter((s) => s.area === area);
       return /* @__PURE__ */ h("div", { key: area, style: { marginTop: 18 } }, /* @__PURE__ */ h("div", { style: { fontSize: 12, letterSpacing: "0.06em", color: th.text.tertiary, fontWeight: th.weight.semibold, marginBottom: 6 } }, area), secs.map((s) => {
         const si = SECS.indexOf(s);
@@ -1207,26 +1356,26 @@
         const vis = s.items.filter((it) => visible(s, it));
         const filtering = filter !== "all" || !!ql;
         if (filtering && vis.length === 0) return null;
-        const isOpen = filtering ? true : !!open[s.id];
+        const isOpen = isSecOpen(s.id);
         const sg = vals["sg:" + s.id] || "";
         let lastSg = "";
-        return /* @__PURE__ */ h("div", { key: s.id, style: { border: "1px solid " + th.border.default, borderRadius: th.radius.lg, marginBottom: 10, overflow: "hidden" } }, /* @__PURE__ */ h("button", { type: "button", onClick: () => setOpen({ ...open, [s.id]: !open[s.id] }), style: { display: "block", width: "100%", textAlign: "left", background: "transparent", border: "none", padding: "14px 14px 12px", cursor: "pointer", fontFamily: th.font.family, color: th.text.primary } }, /* @__PURE__ */ h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } }, /* @__PURE__ */ h("span", { style: { fontSize: 16, fontWeight: th.weight.semibold } }, isOpen ? "▾ " : "▸ ", s.title), /* @__PURE__ */ h("span", { style: { fontSize: 14, color: st.done === st.total ? th.text.success : th.text.secondary, flexShrink: 0 } }, st.done, "/", st.total)), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: "2px 12px", fontSize: 13, marginTop: 4, color: th.text.secondary } }, /* @__PURE__ */ h("span", { style: { color: st.A ? th.text.success : th.text.tertiary } }, "A ", st.A), /* @__PURE__ */ h("span", { style: { color: st.B ? th.text.warning : th.text.tertiary } }, "B ", st.B), /* @__PURE__ */ h("span", { style: { color: st.C ? th.text.danger : th.text.tertiary } }, "C ", st.C), /* @__PURE__ */ h("span", { style: { color: th.text.tertiary } }, "N/A ", st.NA), sg ? /* @__PURE__ */ h("span", null, "Section grade ", sg) : null, secPc[s.id] ? /* @__PURE__ */ h("span", { style: { color: th.text.accent } }, "📷 ", secPc[s.id]) : null), /* @__PURE__ */ h(ProgressBar, { s: st })), isOpen ? /* @__PURE__ */ h("div", { style: { padding: "0 14px 14px" } }, vis.map((it) => {
+        return /* @__PURE__ */ h("div", { key: s.id, id: "sec-" + s.id, "data-sec": s.id, "data-open": isOpen ? "1" : "0", style: { border: "1px solid " + th.border.default, borderRadius: th.radius.lg, marginBottom: 10, overflow: "hidden", background: isOpen ? "transparent" : th.bg.subtle } }, /* @__PURE__ */ h("button", { type: "button", class: "sech-t", "aria-expanded": isOpen, onClick: () => setSec(s.id, !isOpen), style: { display: "block", width: "100%", minHeight: 56, textAlign: "left", background: "transparent", border: "none", padding: "14px 14px 12px", cursor: "pointer", fontFamily: th.font.family, color: th.text.primary, touchAction: "manipulation" } }, /* @__PURE__ */ h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" } }, /* @__PURE__ */ h("span", { style: { fontSize: 16, fontWeight: th.weight.semibold } }, /* @__PURE__ */ h("span", { "aria-hidden": "true", style: { display: "inline-block", width: 20, color: th.text.secondary } }, isOpen ? "▼" : "▶"), s.title), /* @__PURE__ */ h("span", { style: { fontSize: 14, color: st.done === st.total ? th.text.success : th.text.secondary, flexShrink: 0 } }, st.done, "/", st.total, " done")), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: "2px 12px", fontSize: 13, marginTop: 4, color: th.text.secondary } }, /* @__PURE__ */ h("span", { style: { color: st.A ? th.text.success : th.text.tertiary } }, "A ", st.A), /* @__PURE__ */ h("span", { style: { color: st.B ? th.text.warning : th.text.tertiary } }, "B ", st.B), /* @__PURE__ */ h("span", { style: { color: st.C ? th.text.danger : th.text.tertiary } }, "C ", st.C), /* @__PURE__ */ h("span", { style: { color: th.text.tertiary } }, "N/A ", st.NA), sg ? /* @__PURE__ */ h("span", null, "Section grade ", sg) : null, secPc[s.id] ? /* @__PURE__ */ h("span", { style: { color: th.text.accent } }, "📷 ", secPc[s.id]) : null), /* @__PURE__ */ h(ProgressBar, { s: st })), isOpen ? /* @__PURE__ */ h("div", { style: { padding: "0 14px 14px" } }, vis.map((it) => {
           const n = s.items.indexOf(it) + 1;
           const g = vals[it.id + ":g"] || "";
           const c = vals[it.id + ":c"] || "";
           const showNote = !!c || !!notes[it.id];
           const header = it.sg && it.sg !== lastSg ? it.sg : "";
           lastSg = it.sg;
-          return /* @__PURE__ */ h("div", { key: it.id }, header ? /* @__PURE__ */ h("div", { style: { fontSize: 13, fontWeight: th.weight.semibold, color: th.text.secondary, padding: "12px 0 2px" } }, header, ":") : null, /* @__PURE__ */ h("div", { style: { padding: "14px 0", borderTop: "1px solid " + th.border.subtle } }, /* @__PURE__ */ h("div", { style: { fontSize: 16, lineHeight: "22px", color: th.text.primary, marginBottom: 10 } }, /* @__PURE__ */ h("span", { style: { color: th.text.tertiary } }, n, ". "), it.text), it.t === "w" ? /* @__PURE__ */ h("div", { style: { marginBottom: 6 } }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginBottom: 6 } }, specOf(it.text) ? "Spec " + specOf(it.text) + " (from the item name)" : "No spec weight on the sheet", " · weigh 3 portions, in grams"), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, [1, 2, 3].map((wi) => /* @__PURE__ */ h(SmallField, { key: wi, label: "Weight " + wi, value: vals[it.id + ":w" + wi] || "", onChange: (x) => set(it.id + ":w" + wi, x), placeholder: "g" }))), /* @__PURE__ */ h("div", { style: { fontSize: 14, color: th.text.primary, marginTop: 8 } }, "Average: ", /* @__PURE__ */ h("b", null, wAvg(vals, it.id) ? wAvg(vals, it.id) + " g" : "–"), specOf(it.text) ? /* @__PURE__ */ h("span", { style: { color: th.text.secondary } }, " · spec ", specOf(it.text)) : null)) : null, it.t === "c" ? /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ h(SmallField, { label: "Count", value: vals[it.id + ":n"] || "", onChange: (x) => set(it.id + ":n", x) }), /* @__PURE__ */ h(SmallField, { label: "Par lev", value: vals[it.id + ":p"] || "", onChange: (x) => set(it.id + ":p", x) }), /* @__PURE__ */ h(SmallField, { label: "Top-up", value: vals[it.id + ":u"] || "", onChange: (x) => set(it.id + ":u", x) })) : null, it.t === "n" || it.t === "c" ? /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginBottom: 6 } }, it.t === "n" ? "No A/B/C boxes on the paper form for this line; grade optional" : "Grade optional (the paper form has no A/B/C boxes here)") : null, it.t !== "w" ? /* @__PURE__ */ h(GradeRow, { value: g, na: true, onPick: (x) => {
+          return /* @__PURE__ */ h("div", { key: it.id, id: "it-" + it.id }, header ? /* @__PURE__ */ h("div", { style: { fontSize: 13, fontWeight: th.weight.semibold, color: th.text.secondary, padding: "12px 0 2px" } }, header, ":") : null, /* @__PURE__ */ h("div", { style: { padding: "14px 0", borderTop: "1px solid " + th.border.subtle } }, /* @__PURE__ */ h("div", { style: { fontSize: 16, lineHeight: "22px", color: th.text.primary, marginBottom: 10 } }, /* @__PURE__ */ h("span", { style: { color: th.text.tertiary } }, n, ". "), it.text), it.t === "w" ? /* @__PURE__ */ h("div", { style: { marginBottom: 6 } }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginBottom: 6 } }, specOf(it.text) ? "Spec " + specOf(it.text) + " (from the item name)" : "No spec weight on the sheet", " · weigh 3 portions, in grams"), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, [1, 2, 3].map((wi) => /* @__PURE__ */ h(SmallField, { key: wi, label: "Weight " + wi, value: vals[it.id + ":w" + wi] || "", onChange: (x) => set(it.id + ":w" + wi, x), placeholder: "g" }))), /* @__PURE__ */ h("div", { style: { fontSize: 14, color: th.text.primary, marginTop: 8 } }, "Average: ", /* @__PURE__ */ h("b", null, wAvg(vals, it.id) ? wAvg(vals, it.id) + " g" : "–"), specOf(it.text) ? /* @__PURE__ */ h("span", { style: { color: th.text.secondary } }, " · spec ", specOf(it.text)) : null)) : null, it.t === "c" ? /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ h(SmallField, { label: "Count", value: vals[it.id + ":n"] || "", onChange: (x) => set(it.id + ":n", x) }), /* @__PURE__ */ h(SmallField, { label: "Par lev", value: vals[it.id + ":p"] || "", onChange: (x) => set(it.id + ":p", x) }), /* @__PURE__ */ h(SmallField, { label: "Top-up", value: vals[it.id + ":u"] || "", onChange: (x) => set(it.id + ":u", x) })) : null, it.t === "n" || it.t === "c" ? /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginBottom: 6 } }, it.t === "n" ? "No A/B/C boxes on the paper form for this line; grade optional" : "Grade optional (the paper form has no A/B/C boxes here)") : null, it.t !== "w" ? /* @__PURE__ */ h(GradeRow, { value: g, na: true, onPick: (x) => {
             set(it.id + ":g", x);
             if (x === "B" || x === "C") setNotes({ ...notes, [it.id]: true });
           } }) : null, showNote ? /* @__PURE__ */ h("div", null, /* @__PURE__ */ h(NoteBox, { value: c, onChange: (x) => set(it.id + ":c", x), placeholder: g === "B" || g === "C" ? "What needs fixing?" : "Comment" }), /* @__PURE__ */ h("button", { type: "button", "aria-pressed": !!vals[it.id + ":r"], onClick: () => set(it.id + ":r", vals[it.id + ":r"] ? "" : "1"), style: { marginTop: 6, minHeight: 36, padding: "0 12px", borderRadius: th.radius.md, cursor: "pointer", fontFamily: th.font.family, fontSize: 14, border: "1px solid " + (vals[it.id + ":r"] ? th.text.danger : th.border.default), background: vals[it.id + ":r"] ? th.fill.dangerSubtle : "transparent", color: vals[it.id + ":r"] ? th.text.danger : th.text.secondary, fontWeight: vals[it.id + ":r"] ? th.weight.semibold : th.weight.medium } }, vals[it.id + ":r"] ? "✓ Repeat finding" : "Mark as repeat")) : /* @__PURE__ */ h("button", { type: "button", style: linkBtn, onClick: () => setNotes({ ...notes, [it.id]: true }) }, "+ Comment"), photoBar(it.id, "list")));
-        }), !filtering ? /* @__PURE__ */ h("div", { style: { padding: "14px 0 0", borderTop: "1px solid " + th.border.default } }, /* @__PURE__ */ h("div", { style: { fontSize: 14, fontWeight: th.weight.semibold, color: th.text.primary, marginBottom: 8 } }, "Section grade: ", s.title), /* @__PURE__ */ h(GradeRow, { value: sg, na: false, onPick: (x) => set("sg:" + s.id, x) }), /* @__PURE__ */ h(NoteBox, { value: vals["sn:" + s.id] || "", onChange: (x) => set("sn:" + s.id, x), placeholder: "Additional comments" }), photoBar("sec:" + s.id, "list")) : null) : null);
+        }), !filtering ? /* @__PURE__ */ h("div", { style: { padding: "14px 0 0", borderTop: "1px solid " + th.border.default } }, /* @__PURE__ */ h("div", { style: { fontSize: 14, fontWeight: th.weight.semibold, color: th.text.primary, marginBottom: 8 } }, "Section grade: ", s.title), /* @__PURE__ */ h(GradeRow, { value: sg, na: false, onPick: (x) => set("sg:" + s.id, x) }), /* @__PURE__ */ h(NoteBox, { value: vals["sn:" + s.id] || "", onChange: (x) => set("sn:" + s.id, x), placeholder: "Additional comments" }), photoBar("sec:" + s.id, "list")) : null, /* @__PURE__ */ h("button", { type: "button", "data-t": "collapse-sec", "aria-label": "Collapse section " + s.title, onClick: () => collapseSec(s.id), style: { display: "block", width: "100%", minHeight: 52, marginTop: 14, borderRadius: th.radius.md, border: "1px solid " + th.border.default, background: th.bg.subtle, color: th.text.primary, fontFamily: th.font.family, fontSize: 16, fontWeight: th.weight.semibold, cursor: "pointer", touchAction: "manipulation" } }, "Collapse section ▲")) : null);
       }));
     }))), /* @__PURE__ */ h(Section, { heading: "Findings (B & C)", id: "findings" }, findings.length || secFind.length ? /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 6 } }, findings.length, " finding", findings.length === 1 ? "" : "s", " · ", findings.reduce((n, f) => n + (pc[f.it.id] || 0), 0) + secFind.reduce((n, s) => n + (pc["sec:" + s.id] || 0), 0), " photo(s). Tap a thumbnail to enlarge."), findings.map((f) => {
       const g = vals[f.it.id + ":g"];
       const cm = cmR(vals, f.it.id);
-      return /* @__PURE__ */ h("div", { key: f.it.id, style: { display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 0", borderTop: "1px solid " + th.border.subtle } }, /* @__PURE__ */ h("span", { style: { flexShrink: 0, minWidth: 28, textAlign: "center", padding: "2px 6px", borderRadius: th.radius.md, fontWeight: th.weight.semibold, fontSize: 14, background: g === "C" ? th.fill.dangerSubtle : th.fill.warningSubtle, color: g === "C" ? th.text.danger : th.text.warning } }, g), /* @__PURE__ */ h("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, lineHeight: "21px", color: th.text.primary } }, f.it.text), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12 } }, f.s.title, pc[f.it.id] ? " · 📷 " + pc[f.it.id] : ""), /* @__PURE__ */ h("div", { style: { fontSize: 14, marginTop: 4, whiteSpace: "pre-wrap", color: cm ? th.text.secondary : th.text.tertiary } }, cm || "No comment yet"), photoBar(f.it.id, "find")));
+      return /* @__PURE__ */ h("div", { key: f.it.id, style: { display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 0", borderTop: "1px solid " + th.border.subtle } }, /* @__PURE__ */ h("span", { style: { flexShrink: 0, minWidth: 28, textAlign: "center", padding: "2px 6px", borderRadius: th.radius.md, fontWeight: th.weight.semibold, fontSize: 14, background: g === "C" ? th.fill.dangerSubtle : th.fill.warningSubtle, color: g === "C" ? th.text.danger : th.text.warning } }, g), /* @__PURE__ */ h("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, lineHeight: "21px", color: th.text.primary } }, f.it.text), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12 } }, f.s.title, pc[f.it.id] ? " · 📷 " + pc[f.it.id] : ""), /* @__PURE__ */ h("button", { type: "button", "data-t": "goto", style: { ...linkBtn, minHeight: 40 }, onClick: () => jumpTo(f.s.id, f.it.id) }, "Go to item in checklist ↑"), /* @__PURE__ */ h("div", { style: { fontSize: 14, marginTop: 4, whiteSpace: "pre-wrap", color: cm ? th.text.secondary : th.text.tertiary } }, cm || "No comment yet"), photoBar(f.it.id, "find")));
     }), secFind.map((s) => /* @__PURE__ */ h("div", { key: s.id, style: { padding: "12px 0", borderTop: "1px solid " + th.border.subtle } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, color: th.text.primary } }, s.title, ": additional comments"), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12 } }, "Section grade ", vals["sg:" + s.id] || "-", pc["sec:" + s.id] ? " · 📷 " + pc["sec:" + s.id] : ""), vals["sn:" + s.id] ? /* @__PURE__ */ h("div", { style: { fontSize: 14, marginTop: 4, whiteSpace: "pre-wrap", color: th.text.secondary } }, vals["sn:" + s.id]) : null, photoBar("sec:" + s.id, "find")))) : /* @__PURE__ */ h(Text, null, "Items you grade B or C collect here with their comments and photos, as the corrective-action list. Section comments with photos also appear here.")), /* @__PURE__ */ h(Section, { heading: "Gradings and sign-off", id: "gradings" }, /* @__PURE__ */ h(
       Table,
       {
@@ -1261,7 +1410,9 @@
       setExportText("");
       clearDirty(cur || "_");
       replacePhotos([]).then(() => setMsg("Cleared " + (curS ? curS.label + " " : "") + "entries and photos; store details kept. New inspection started. Other stores' drafts are untouched."));
-    } })))), /* @__PURE__ */ h(Section, { heading: "How grading works", id: "notes", collapsible: true, defaultOpen: false }, /* @__PURE__ */ h(Text, null, "The source sheet has no formulas, weights or totals. Each section ends with a GRADING line where the inspector circles A, B or C, and the report closes with an overall grade (A = Excellent, B = Needs improvement, C = Unacceptable) chosen by the inspector. The A/B/C counts on this page are simple tallies to guide that call; the official Bossa scoring method is not in the file."), /* @__PURE__ */ h(Text, null, "N/A is an addition for items that do not apply; it is not on the paper form. Portion-weight lines take three weighings (Weight 1, 2 and 3) and no grade; they count as done once all three are entered and are left out of the A/B/C tallies. The spec shown is the weight in the item name; the sheet gives no tolerance, so the average is shown without a pass/fail. Older backups with a single weight load it as Weight 1, and any old grade on a weight line is kept as a note in its comment. Menu-count lines have no A/B/C boxes on paper, so they count as done once a count is entered."), /* @__PURE__ */ h(Text, null, 'QHRM letter: the comment on each line becomes a bullet under its section in the letter, word for word, and "Mark as repeat" adds "(Repeat)" after it. Weight lines appear in the letter only when they have a comment; the three weights are added to that bullet (e.g. 160/170/170g). Section additional comments, non-conformance grades and comments, and the letter fields under Store details are used as written. Older backups without these fields still load; the new fields are simply blank.'), /* @__PURE__ */ h(Text, null, "Photos: Camera opens the phone camera and Gallery picks existing pictures (several at once). Each photo is shrunk on the phone to at most 1280 px on the longest side (JPEG quality 0.7, usually 100-300 KB) plus a small thumbnail, and kept in this browser's on-device database. The bar at the top shows how many are saved and the space they use; a red warning means this browser cannot keep photos, so download the photo report or the full backup before closing. Photos never leave the phone unless you download or share a report or backup.")), /* @__PURE__ */ h("p", { class: "foot" }, "QHRM Checklist app v", APP_VERSION, " · works offline · entries and photos are kept only in this browser on this phone"));
+    } }))), /* @__PURE__ */ h("div", { "data-t": "danger-zone", style: { fontFamily: th.font.family, marginTop: 28, paddingTop: 16, borderTop: "2px dashed " + th.text.danger } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, fontWeight: th.weight.semibold, color: th.text.danger, marginBottom: 4 } }, "Danger zone"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 10 } }, "Delete this report permanently: " + (curS ? curS.label : "the current inspection") + " (" + isoDay(vals) + "). Removes its answers and its photos from this phone to free space, and starts a blank checklist. You will be asked to confirm twice."), /* @__PURE__ */ h("button", { type: "button", "data-t": "del-current", style: { ...dangerBtn, width: "100%" }, onClick: () => askDelete(cur) }, "🗑 Delete this report…"), delMsg ? /* @__PURE__ */ h("div", { role: "status", style: { fontSize: 14, color: th.text.danger, marginTop: 8 } }, delMsg) : null)), /* @__PURE__ */ h(Section, { heading: "How grading works", id: "notes", collapsible: true, defaultOpen: false }, /* @__PURE__ */ h(Text, null, "The source sheet has no formulas, weights or totals. Each section ends with a GRADING line where the inspector circles A, B or C, and the report closes with an overall grade (A = Excellent, B = Needs improvement, C = Unacceptable) chosen by the inspector. The A/B/C counts on this page are simple tallies to guide that call; the official Bossa scoring method is not in the file."), /* @__PURE__ */ h(Text, null, "N/A is an addition for items that do not apply; it is not on the paper form. Portion-weight lines take three weighings (Weight 1, 2 and 3) and no grade; they count as done once all three are entered and are left out of the A/B/C tallies. The spec shown is the weight in the item name; the sheet gives no tolerance, so the average is shown without a pass/fail. Older backups with a single weight load it as Weight 1, and any old grade on a weight line is kept as a note in its comment. Menu-count lines have no A/B/C boxes on paper, so they count as done once a count is entered."), /* @__PURE__ */ h(Text, null, 'QHRM letter: the comment on each line becomes a bullet under its section in the letter, word for word, and "Mark as repeat" adds "(Repeat)" after it. Weight lines appear in the letter only when they have a comment; the three weights are added to that bullet (e.g. 160/170/170g). Section additional comments, non-conformance grades and comments, and the letter fields under Store details are used as written. Older backups without these fields still load; the new fields are simply blank.'), /* @__PURE__ */ h(Text, null, "Photos: Camera opens the phone camera and Gallery picks existing pictures (several at once). Each photo is shrunk on the phone to at most 1280 px on the longest side (JPEG quality 0.7, usually 100-300 KB) plus a small thumbnail, and kept in this browser's on-device database. The bar at the top shows how many are saved and the space they use; a red warning means this browser cannot keep photos, so download the photo report or the full backup before closing. Photos never leave the phone unless you download or share a report or backup.")), delDialog, /* @__PURE__ */ h("p", { class: "foot" }, "QHRM Checklist app v", APP_VERSION, " · works offline · entries and photos are kept only in this browser on this phone"));
   }
-  render(/* @__PURE__ */ h(App, null), document.getElementById("app"));
+  const appEl = document.getElementById("app");
+  appEl.textContent = "";
+  render(/* @__PURE__ */ h(App, null), appEl);
 })();
