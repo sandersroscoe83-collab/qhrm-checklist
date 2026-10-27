@@ -61,3 +61,6 @@ All paths are relative, so it works from any sub-path. Test locally with `python
   background, and before Clear entries / Start new inspection / a restore. Export and backup lists them with Restore
   (two taps) and Save as file. "Save backup file" next to the Autosaved line saves/shares the normal backup. The letter
   date now has its own section just above Export and backup.
+- v1.1.3: compact sticky top bar: store/progress row plus one line "Autosaved ✓ HH:MM · Backup: <time>" with small
+  Save (share / save to phone) and Download buttons; tap the line for details. Storage, persistence and photo status
+  are in Export and backup. A short red line stays in the bar if saving is off or storage is not persistent.
