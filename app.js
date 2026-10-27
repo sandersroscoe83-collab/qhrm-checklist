@@ -7,7 +7,7 @@
   const useEffect = PR.useEffect;
   const useMemo = PR.useMemo;
   const useRef = PR.useRef;
-  const APP_VERSION = "1.1.1";
+  const APP_VERSION = "1.1.2";
   const TH = {
     fill: { successSubtle: "var(--okS)", warningSubtle: "var(--warnS)", dangerSubtle: "var(--badS)", secondary: "var(--fill2)" },
     text: { success: "var(--ok)", warning: "var(--warn)", danger: "var(--bad)", primary: "var(--tx)", secondary: "var(--tx2)", tertiary: "var(--tx3)", accent: "var(--acc)" },
@@ -170,7 +170,6 @@
     }
   }
   const XKEY = "qhrm-dirty-v1";
-  const REMIND_N = 12;
   const REMIND_MS = 15 * 60 * 1e3;
   function loadLastBk() {
     const o = readJson(BKEY);
@@ -273,6 +272,48 @@
   }
   const DB_NAME = "qhrm-photos-jb-paarl";
   const PSTORE = "photos";
+  const ADB_NAME = "qhrm-autobackups-v1";
+  const AUTO_KEEP = 5;
+  const AUTO_MS = 5 * 60 * 1e3;
+  function hashStr(s) {
+    let h2 = 5381, g = 52711;
+    for (let i = 0; i < s.length; i++) {
+      const c = s.charCodeAt(i);
+      h2 = h2 * 33 ^ c;
+      g = g * 31 ^ c;
+    }
+    return (h2 >>> 0).toString(36) + (g >>> 0).toString(36) + s.length.toString(36);
+  }
+  function openADb() {
+    return new Promise((resolve, reject) => {
+      try {
+        const req = window.indexedDB.open(ADB_NAME, 1);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains("meta")) db.createObjectStore("meta", { keyPath: "id" });
+          if (!db.objectStoreNames.contains("snaps")) db.createObjectStore("snaps", { keyPath: "id" });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+        req.onblocked = () => reject(new Error("blocked"));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+  function aTx(db, mode, fn) {
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(["meta", "snaps"], mode);
+        const r = fn(tx.objectStore("meta"), tx.objectStore("snaps"));
+        tx.oncomplete = () => resolve(r ? r.result : void 0);
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
   const KEYLABEL = {};
   const KEYORDER = [];
   SECS.forEach((s) => {
@@ -1138,6 +1179,156 @@
       clearDirty(cur || "_");
       setNow(t);
     };
+    useEffect(() => {
+      const el = document.querySelector("[data-t=topbar]");
+      const RO = window.ResizeObserver;
+      if (!el || !RO) return;
+      const fit = () => {
+        document.documentElement.style.scrollPaddingTop = Math.ceil(el.getBoundingClientRect().height) + 4 + "px";
+      };
+      const ro = new RO(fit);
+      ro.observe(el);
+      fit();
+      return () => ro.disconnect();
+    }, []);
+    const adbRef = useRef(null);
+    const [snaps, setSnaps] = useState([]);
+    const [snapArm, setSnapArm] = useState("");
+    const [snapMsg, setSnapMsg] = useState("");
+    const lastSigRef = useRef({});
+    const lastSnapRef = useRef({});
+    const startRef = useRef(Date.now());
+    const snapMetas = async (db) => await aTx(db, "readonly", (m) => m.getAll()) || [];
+    const refreshSnaps = async () => {
+      const db = adbRef.current;
+      if (!db) return;
+      try {
+        const all2 = await snapMetas(db);
+        all2.sort((a, b) => b.ts - a.ts);
+        setSnaps(all2);
+      } catch (e) {
+      }
+    };
+    useEffect(() => {
+      if (!window.indexedDB) return;
+      openADb().then(async (db) => {
+        adbRef.current = db;
+        const all2 = await snapMetas(db);
+        for (const s of all2) if (!lastSnapRef.current[s.st] || s.ts > lastSnapRef.current[s.st]) {
+          lastSnapRef.current[s.st] = s.ts;
+          lastSigRef.current[s.st] = s.sig;
+        }
+        all2.sort((a, b) => b.ts - a.ts);
+        setSnaps(all2);
+      }).catch(() => {
+        adbRef.current = null;
+      });
+    }, []);
+    const pruneSnaps = async (db, sk, keep) => {
+      const mine = (await snapMetas(db)).filter((s) => s.st === sk).sort((a, b) => b.ts - a.ts);
+      const gone = mine.slice(keep).map((s) => s.id);
+      if (gone.length) await aTx(db, "readwrite", (m, s2) => {
+        gone.forEach((id) => {
+          m.delete(id);
+          s2.delete(id);
+        });
+      });
+    };
+    const takeSnap = async (st, v, ps, why) => {
+      const db = adbRef.current;
+      const sk = st || "_";
+      if (!db || entryCount(v) === 0 && ps.length === 0) return false;
+      const sig = hashStr(JSON.stringify(v) + "|" + ps.map((p) => p.id).join(","));
+      if (lastSigRef.current[sk] === sig) return false;
+      const s = storeOf(st);
+      const text = JSON.stringify({ v: 2, store: st, storeName: s ? s.label : v["d:name"] || "", vals: v, photos: ps });
+      const ts = Date.now();
+      const meta = { id: sk + "|" + ts + "|" + newId(), st: sk, ts, why, n: entryCount(v), p: ps.length, sig };
+      const put = () => aTx(db, "readwrite", (m, s2) => {
+        s2.put({ id: meta.id, text });
+        m.put(meta);
+      });
+      lastSigRef.current[sk] = sig;
+      lastSnapRef.current[sk] = ts;
+      try {
+        await put();
+      } catch (e) {
+        try {
+          await pruneSnaps(db, sk, 0);
+          await put();
+        } catch (e2) {
+          delete lastSigRef.current[sk];
+          setSnapMsg("Auto backup could not be saved: phone storage is full. Save a backup file.");
+          refreshSnaps();
+          return false;
+        }
+      }
+      try {
+        await pruneSnaps(db, sk, AUTO_KEEP);
+      } catch (e) {
+      }
+      setSnapMsg("");
+      refreshSnaps();
+      return true;
+    };
+    const snapCur = (why) => takeSnap(curRef.current, valsRef.current, allRef.current.filter((x) => (x.st || "") === curRef.current), why);
+    const snapRef = useRef(snapCur);
+    snapRef.current = snapCur;
+    useEffect(() => {
+      const tick = () => {
+        const sk = curRef.current || "_";
+        if (Date.now() - (lastSnapRef.current[sk] || startRef.current) >= AUTO_MS) snapRef.current("auto");
+      };
+      const t = window.setInterval(tick, 6e4);
+      const onVis = () => {
+        if (document.visibilityState === "hidden") snapRef.current("on leave");
+      };
+      const onHide = () => {
+        snapRef.current("on leave");
+      };
+      document.addEventListener("visibilitychange", onVis);
+      window.addEventListener("pagehide", onHide);
+      return () => {
+        window.clearInterval(t);
+        document.removeEventListener("visibilitychange", onVis);
+        window.removeEventListener("pagehide", onHide);
+      };
+    }, []);
+    const snapText = async (id) => {
+      const db = adbRef.current;
+      if (!db) return "";
+      const r = await aTx(db, "readonly", (m, s2) => s2.get(id));
+      return r ? r.text : "";
+    };
+    const restoreSnap = async (sn) => {
+      setSnapArm("");
+      try {
+        const txt = await snapText(sn.id);
+        if (!txt) {
+          setSnapMsg("That auto backup could not be read.");
+          return;
+        }
+        await snapCur("before restore");
+        await applyBackup(txt);
+        setSnapMsg("Auto backup from " + fmtWhen(sn.ts) + " restored.");
+      } catch (e) {
+        setSnapMsg("That auto backup could not be read.");
+      }
+    };
+    const saveSnapFile = async (sn) => {
+      try {
+        const txt = await snapText(sn.id);
+        if (!txt) {
+          setSnapMsg("That auto backup could not be read.");
+          return;
+        }
+        const s = storeOf(sn.st === "_" ? "" : sn.st);
+        const d = new Date(sn.ts);
+        download("QHRM_" + (s ? s.file : "Store") + "_" + d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate()) + "_" + two(d.getHours()) + two(d.getMinutes()) + "_autobackup.json", txt, "application/json", false);
+      } catch (e) {
+        setSnapMsg("That auto backup could not be read.");
+      }
+    };
     const shareBackup = async () => {
       const txt = backupText();
       const np = photos.length + " photo" + (photos.length === 1 ? "" : "s");
@@ -1193,7 +1384,7 @@
     const nDirty = dCur ? dCur.n.length : 0;
     const lastTs = lastBk[sk0] || 0;
     const rBase = dism[sk0] || { n: 0, t: dCur ? dCur.first : now };
-    const remind = nDirty > 0 && (nDirty - rBase.n >= REMIND_N || now - rBase.t >= REMIND_MS);
+    const remind = false;
     const saveOff = !ok || pstat === "memory";
     const lastTxt = lastTs ? "Last backup: " + fmtWhen(lastTs) : "No backup yet";
     const drafts = STORES.filter((s) => s.id !== cur).map((s) => {
@@ -1238,6 +1429,10 @@
     };
     const doDelete = async (st) => {
       const d = delInfo(st);
+      try {
+        await takeSnap(st, d.v, allRef.current.filter((x) => (x.st || "") === st), "before clear");
+      } catch (e) {
+      }
       const isCur = st === cur;
       let okDel = true;
       if (st && !isCur) {
@@ -1359,17 +1554,17 @@
         setInst(null);
         ask();
       }, () => setInst(null));
-    } }, "Install app")) : null, saveOff ? /* @__PURE__ */ h(Callout, { tone: "danger", lead: !ok ? "Saving is OFF in this browser." : "Saving photos is OFF in this browser." }, !ok ? "Your entries and photos will be LOST when this page closes or refreshes. Download a full backup (with photos) regularly. Check the browser is not in private (incognito) mode and the phone has free space." : "Your photos will be LOST when this page closes or refreshes (entries still save on this device). Download a full backup (with photos) regularly. Check the browser is not in private (incognito) mode and the phone has free space.") : null, /* @__PURE__ */ h("div", { style: { position: "sticky", top: 0, zIndex: 5, background: th.bg.base, padding: "8px 0 10px", borderBottom: "1px solid " + th.border.subtle, fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: "4px 14px", fontSize: 15, color: th.text.primary } }, /* @__PURE__ */ h("span", { style: { fontWeight: th.weight.semibold, color: curS ? th.text.primary : th.text.danger } }, curS ? curS.short : "No store picked"), /* @__PURE__ */ h("span", { style: { fontWeight: th.weight.semibold } }, all.done, " / ", TOTAL, " done"), /* @__PURE__ */ h("span", { style: { color: th.text.success } }, "A ", all.A), /* @__PURE__ */ h("span", { style: { color: th.text.warning } }, "B ", all.B), /* @__PURE__ */ h("span", { style: { color: th.text.danger } }, "C ", all.C), /* @__PURE__ */ h("span", { style: { color: th.text.secondary } }, "N/A ", all.NA)), /* @__PURE__ */ h(ProgressBar, { s: all }), ok ? /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginTop: 4 } }, savedAt ? "Saved on this device " + savedAt : "Saves automatically on this device") : /* @__PURE__ */ h("div", { style: { fontSize: 13, marginTop: 4, color: th.text.danger, fontWeight: th.weight.semibold } }, "⚠ Saving is OFF: entries and photos are lost when this page closes. Download a full backup."), /* @__PURE__ */ h("div", { "data-t": "storage", style: { ...muted, fontSize: 12, marginTop: 2, color: !ok ? th.text.danger : th.text.secondary } }, "Saving on this phone: " + (!ok ? "OFF" : pstat === "memory" ? "ON for entries, OFF for photos" : "ON") + " · Persistent storage: " + (persist === "granted" ? "granted" : persist === "checking" ? "checking…" : persist === "unsupported" ? "not available in this browser" : "not granted yet (install the app to help)")), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginTop: 2, color: busy || pmsg ? th.text.accent : pstat === "memory" ? th.text.danger : th.text.secondary } }, busy ? busy : pmsg ? pmsg : pstat === "checking" ? "Checking photo storage…" : pstat === "ok" ? "Photos: " + photos.length + " saved on this device (" + (pBytes / 1048576).toFixed(1) + " MB)" : "⚠ Photos can't be saved on this device in this browser (" + photos.length + " held until you close the page). Download the photo report or full backup before leaving."), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: "6px 12px", alignItems: "center", marginTop: 8 } }, /* @__PURE__ */ h(Button, { label: "Save backup to phone", variant: "primary", onClick: () => {
+    } }, "Install app")) : null, saveOff ? /* @__PURE__ */ h(Callout, { tone: "danger", lead: !ok ? "Saving is OFF in this browser." : "Saving photos is OFF in this browser." }, !ok ? "Your entries and photos will be LOST when this page closes or refreshes. Download a full backup (with photos) regularly. Check the browser is not in private (incognito) mode and the phone has free space." : "Your photos will be LOST when this page closes or refreshes (entries still save on this device). Download a full backup (with photos) regularly. Check the browser is not in private (incognito) mode and the phone has free space.") : null, /* @__PURE__ */ h("div", { "data-t": "topbar", style: { position: "sticky", top: 0, zIndex: 5, background: th.bg.base, padding: "8px 0 10px", borderBottom: "1px solid " + th.border.subtle, fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: "4px 14px", fontSize: 15, color: th.text.primary } }, /* @__PURE__ */ h("span", { style: { fontWeight: th.weight.semibold, color: curS ? th.text.primary : th.text.danger } }, curS ? curS.short : "No store picked"), /* @__PURE__ */ h("span", { style: { fontWeight: th.weight.semibold } }, all.done, " / ", TOTAL, " done"), /* @__PURE__ */ h("span", { style: { color: th.text.success } }, "A ", all.A), /* @__PURE__ */ h("span", { style: { color: th.text.warning } }, "B ", all.B), /* @__PURE__ */ h("span", { style: { color: th.text.danger } }, "C ", all.C), /* @__PURE__ */ h("span", { style: { color: th.text.secondary } }, "N/A ", all.NA)), /* @__PURE__ */ h(ProgressBar, { s: all }), ok ? /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px 10px", marginTop: 4 } }, /* @__PURE__ */ h("span", { "data-t": "autosave", style: { ...muted, fontSize: 12 } }, "Autosaved ✓" + (savedAt ? " " + savedAt : "") + " · last backup file: " + (lastTs ? fmtWhen(lastTs) : "none yet")), /* @__PURE__ */ h("button", { type: "button", "data-t": "save-file", onClick: () => {
       shareBackup();
-    } }), /* @__PURE__ */ h(Button, { label: "Download backup", onClick: () => doBackup() }), /* @__PURE__ */ h("span", { style: { fontSize: 13, color: !lastTs && saveOff ? th.text.danger : th.text.secondary } }, lastTxt, curS ? " (" + curS.short + ")" : "", nDirty ? " · " + nDirty + " change" + (nDirty > 1 ? "s" : "") + " since" : "")), bkMsg ? /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginTop: 4 } }, bkMsg) : null, remind ? /* @__PURE__ */ h("div", { role: "status", style: { marginTop: 8, padding: "8px 10px", borderRadius: th.radius.md, background: saveOff ? th.fill.dangerSubtle : th.fill.warningSubtle, border: "1px solid " + (saveOff ? th.text.danger : th.text.warning) } }, /* @__PURE__ */ h("div", { style: { fontSize: 14, lineHeight: "20px", color: saveOff ? th.text.danger : th.text.warning, fontWeight: th.weight.semibold, marginBottom: 6 } }, "Backup reminder: " + nDirty + " change" + (nDirty > 1 ? "s" : "") + " not in a backup yet. " + lastTxt + "." + (saveOff ? " Saving is OFF here, so they are lost if the page closes." : "")), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Save backup to phone", variant: "primary", onClick: () => {
+    }, style: { minHeight: 32, padding: "0 10px", borderRadius: th.radius.md, border: "1px solid " + th.border.default, background: th.bg.subtle, color: th.text.primary, fontFamily: th.font.family, fontSize: 13, cursor: "pointer", touchAction: "manipulation" } }, "Save backup file")) : /* @__PURE__ */ h("div", { style: { fontSize: 13, marginTop: 4, color: th.text.danger, fontWeight: th.weight.semibold } }, "⚠ Saving is OFF: entries and photos are lost when this page closes. Download a full backup."), /* @__PURE__ */ h("div", { "data-t": "storage", style: { ...muted, fontSize: 12, marginTop: 2, color: !ok ? th.text.danger : th.text.secondary } }, "Saving on this phone: " + (!ok ? "OFF" : pstat === "memory" ? "ON for entries, OFF for photos" : "ON") + " · Persistent storage: " + (persist === "granted" ? "granted" : persist === "checking" ? "checking…" : persist === "unsupported" ? "not available in this browser" : "not granted yet (install the app to help)")), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginTop: 2, color: busy || pmsg ? th.text.accent : pstat === "memory" ? th.text.danger : th.text.secondary } }, busy ? busy : pmsg ? pmsg : pstat === "checking" ? "Checking photo storage…" : pstat === "ok" ? "Photos: " + photos.length + " saved on this device (" + (pBytes / 1048576).toFixed(1) + " MB)" : "⚠ Photos can't be saved on this device in this browser (" + photos.length + " held until you close the page). Download the photo report or full backup before leaving."), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: "6px 12px", alignItems: "center", marginTop: 8 } }, /* @__PURE__ */ h(Button, { label: "Save backup to phone", variant: "primary", onClick: () => {
       shareBackup();
-    } }), /* @__PURE__ */ h(Button, { label: "Download backup now", onClick: () => doBackup() }), /* @__PURE__ */ h(Button, { label: "Dismiss", onClick: () => setDism({ ...dism, [sk0]: { n: nDirty, t: Date.now() } }) }))) : null), /* @__PURE__ */ h("input", { ref: camRef, type: "file", accept: "image/*", capture: "environment", multiple: true, onChange: (e) => {
+    } }), /* @__PURE__ */ h(Button, { label: "Download backup", onClick: () => doBackup() }), /* @__PURE__ */ h("span", { style: { fontSize: 13, color: !lastTs && saveOff ? th.text.danger : th.text.secondary } }, lastTxt, curS ? " (" + curS.short + ")" : "", nDirty ? " · " + nDirty + " change" + (nDirty > 1 ? "s" : "") + " since" : "")), bkMsg ? /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginTop: 4 } }, bkMsg) : null), /* @__PURE__ */ h("input", { ref: camRef, type: "file", accept: "image/*", capture: "environment", multiple: true, onChange: (e) => {
       onFiles(e);
     }, style: { display: "none" } }), /* @__PURE__ */ h("input", { ref: galRef, type: "file", accept: "image/*", multiple: true, onChange: (e) => {
       onFiles(e);
-    }, style: { display: "none" } }), /* @__PURE__ */ h("input", { ref: fileRef, type: "file", accept: ".json,application/json,text/plain", onChange: (e) => onRestoreFile(e), style: { display: "none" } }), /* @__PURE__ */ h(TableOfContents, { items: [{ label: "Store details", id: "details" }, { label: "Automatic C grading", id: "autoc" }, { label: "Checklist", id: "checklist" }, { label: "Findings (B & C)", id: "findings" }, { label: "Gradings and sign-off", id: "gradings" }, { label: "Export and backup", id: "export" }, { label: "How grading works", id: "notes" }] }), /* @__PURE__ */ h(Section, { heading: "Store details", id: "details" }, /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, marginBottom: 6 } }, "Store being inspected"), /* @__PURE__ */ h(Segmented, { options: STORES.map((s) => ({ value: s.id, label: s.short })), value: cur, onChange: (x) => askSwitch(x) }), /* @__PURE__ */ h("div", { style: { ...muted, marginTop: 6 } }, curS ? curS.label : "No store picked yet. Pick the store to fill in its details" + (entryCount(vals) > 0 || photos.length > 0 ? "; the entries already on this page will become that store's inspection." : ".")), swArm ? /* @__PURE__ */ h("div", { style: { marginTop: 8, padding: 10, border: "1px solid " + th.border.default, borderRadius: th.radius.md } }, /* @__PURE__ */ h("div", { style: { fontSize: 14, color: th.text.primary, marginBottom: 8 } }, cur ? "Switch to " + sLabel(swArm) + "? The " + sLabel(cur) + " entries (" + entryCount(vals) + ") and photos (" + photos.length + ") stay saved on this device as a draft; pick " + (curS ? curS.short : "it") + " again to carry on." + (ok ? "" : " Warning: this browser cannot save on the device, so download a full backup first.") : "Pick " + sLabel(swArm) + "? The " + entryCount(vals) + " entries and " + photos.length + " photo(s) on this page become the " + sLabel(swArm) + " inspection."), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: (cur ? "Switch to " : "Use for ") + sLabel(swArm), variant: "primary", onClick: () => {
+    }, style: { display: "none" } }), /* @__PURE__ */ h("input", { ref: fileRef, type: "file", accept: ".json,application/json,text/plain", onChange: (e) => onRestoreFile(e), style: { display: "none" } }), /* @__PURE__ */ h(TableOfContents, { items: [{ label: "Store details", id: "details" }, { label: "Automatic C grading", id: "autoc" }, { label: "Checklist", id: "checklist" }, { label: "Findings (B & C)", id: "findings" }, { label: "Gradings and sign-off", id: "gradings" }, { label: "Letter date", id: "letterdate" }, { label: "Export and backup", id: "export" }, { label: "How grading works", id: "notes" }] }), /* @__PURE__ */ h(Section, { heading: "Store details", id: "details" }, /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, marginBottom: 6 } }, "Store being inspected"), /* @__PURE__ */ h(Segmented, { options: STORES.map((s) => ({ value: s.id, label: s.short })), value: cur, onChange: (x) => askSwitch(x) }), /* @__PURE__ */ h("div", { style: { ...muted, marginTop: 6 } }, curS ? curS.label : "No store picked yet. Pick the store to fill in its details" + (entryCount(vals) > 0 || photos.length > 0 ? "; the entries already on this page will become that store's inspection." : ".")), swArm ? /* @__PURE__ */ h("div", { style: { marginTop: 8, padding: 10, border: "1px solid " + th.border.default, borderRadius: th.radius.md } }, /* @__PURE__ */ h("div", { style: { fontSize: 14, color: th.text.primary, marginBottom: 8 } }, cur ? "Switch to " + sLabel(swArm) + "? The " + sLabel(cur) + " entries (" + entryCount(vals) + ") and photos (" + photos.length + ") stay saved on this device as a draft; pick " + (curS ? curS.short : "it") + " again to carry on." + (ok ? "" : " Warning: this browser cannot save on the device, so download a full backup first.") : "Pick " + sLabel(swArm) + "? The " + entryCount(vals) + " entries and " + photos.length + " photo(s) on this page become the " + sLabel(swArm) + " inspection."), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: (cur ? "Switch to " : "Use for ") + sLabel(swArm), variant: "primary", onClick: () => {
       doSwitch(swArm);
-    } }), /* @__PURE__ */ h(Button, { label: "Cancel", onClick: () => setSwArm("") }))) : null, drafts.length ? /* @__PURE__ */ h("div", { style: { ...muted, marginTop: 6 } }, "Drafts kept on this device: " + drafts.map((d) => d.s.short + " (" + d.n + " entries, " + d.p + " photos)").join("; ")) : null, drafts.length ? /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 } }, drafts.map((d) => /* @__PURE__ */ h("button", { key: d.s.id, type: "button", "data-t": "del-draft-" + d.s.id, style: { ...dangerBtn, minHeight: 44, fontSize: 14 }, onClick: () => askDelete(d.s.id) }, "Clear " + d.s.short + " entries…"))) : null, delMsg ? /* @__PURE__ */ h("div", { role: "status", style: { fontSize: 13, color: th.text.danger, marginTop: 6 } }, delMsg) : null, smsg ? /* @__PURE__ */ h("div", { style: { fontSize: 13, color: th.text.accent, marginTop: 6 } }, smsg) : null), DETAILS.map(([k, lab]) => k === "addr" ? /* @__PURE__ */ h("div", { key: k, style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14 } }, lab), /* @__PURE__ */ h(NoteBox, { value: vals["d:" + k] || "", onChange: (x) => set("d:" + k, x), placeholder: DETAIL_HINT[k] || "" })) : /* @__PURE__ */ h(Input, { key: k, label: lab, value: vals["d:" + k] || "", onChange: (x) => set("d:" + k, x), placeholder: DETAIL_HINT[k] })), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Set letter date to today", onClick: () => set("d:ldate", (/* @__PURE__ */ new Date()).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })) }), curS ? /* @__PURE__ */ h(Button, { label: rsArm ? "Tap again to reset " + curS.short + " details" : "Reset store details to defaults", onClick: () => resetStore() }) : null), /* @__PURE__ */ h("div", { style: muted }, "Picking a store fills in its name, address, Attention, owner, greeting, management team and last grading. Changes you make to these are remembered for that store on this device and filled in next time; Reset puts back the defaults. Defaults come from the QHRM letters: Strand from the 16 Sept 2026 letter, Tyger Valley from the 20 July 2026 letter (management team blank, as on that letter). Paarl has only its address, from the liquor licence renewal notice; fill in its owners and team once. Each store keeps its own entries and photos, so switching store does not wipe another store's draft."), /* @__PURE__ */ h("div", { style: muted }, "The letter fields (letter date, address, attention, greeting, signer) are used by the QHRM letter generator. A blank letter date means the date the letter is generated; blank signer fields default to Roscoe Sanders, Bossa Group.")), /* @__PURE__ */ h(Section, { heading: "Automatic C grading", id: "autoc", collapsible: true, defaultOpen: false }, /* @__PURE__ */ h(Text, null, "Major non-conformance to required operational standards of Bossa may result in an automatic C grading for the entire section or the overall report, with specific reference to:"), /* @__PURE__ */ h(NumberedList, { items: AUTO_C })), /* @__PURE__ */ h(Section, { heading: "Checklist", id: "checklist" }, delMsg ? /* @__PURE__ */ h("div", { class: "note", role: "status", "data-t": "del-msg", style: { borderColor: th.text.danger } }, delMsg, " ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => setDelMsg("") }, "OK")) : null, /* @__PURE__ */ h(Segmented, { options: [{ value: "all", label: "All" }, { value: "todo", label: "To do", count: TOTAL - all.done }, { value: "bc", label: "B & C", count: all.B + all.C }], value: filter, onChange: (x) => setFilter(x) }), /* @__PURE__ */ h(Input, { value: query, onChange: (x) => setQuery(x), placeholder: "Search items or sections" }), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Collapse all", onClick: () => openAll(false) }), /* @__PURE__ */ h(Button, { label: "Expand all", onClick: () => openAll(true) })), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, AREAS.map((area) => {
+    } }), /* @__PURE__ */ h(Button, { label: "Cancel", onClick: () => setSwArm("") }))) : null, drafts.length ? /* @__PURE__ */ h("div", { style: { ...muted, marginTop: 6 } }, "Drafts kept on this device: " + drafts.map((d) => d.s.short + " (" + d.n + " entries, " + d.p + " photos)").join("; ")) : null, drafts.length ? /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 } }, drafts.map((d) => /* @__PURE__ */ h("button", { key: d.s.id, type: "button", "data-t": "del-draft-" + d.s.id, style: { ...dangerBtn, minHeight: 44, fontSize: 14 }, onClick: () => askDelete(d.s.id) }, "Clear " + d.s.short + " entries…"))) : null, delMsg ? /* @__PURE__ */ h("div", { role: "status", style: { fontSize: 13, color: th.text.danger, marginTop: 6 } }, delMsg) : null, smsg ? /* @__PURE__ */ h("div", { style: { fontSize: 13, color: th.text.accent, marginTop: 6 } }, smsg) : null), DETAILS.filter(([k]) => k !== "ldate").map(([k, lab]) => k === "addr" ? /* @__PURE__ */ h("div", { key: k, style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14 } }, lab), /* @__PURE__ */ h(NoteBox, { value: vals["d:" + k] || "", onChange: (x) => set("d:" + k, x), placeholder: DETAIL_HINT[k] || "" })) : /* @__PURE__ */ h(Input, { key: k, label: lab, value: vals["d:" + k] || "", onChange: (x) => set("d:" + k, x), placeholder: DETAIL_HINT[k] })), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, curS ? /* @__PURE__ */ h(Button, { label: rsArm ? "Tap again to reset " + curS.short + " details" : "Reset store details to defaults", onClick: () => resetStore() }) : null), /* @__PURE__ */ h("div", { style: muted }, "Picking a store fills in its name, address, Attention, owner, greeting, management team and last grading. Changes you make to these are remembered for that store on this device and filled in next time; Reset puts back the defaults. Defaults come from the QHRM letters: Strand from the 16 Sept 2026 letter, Tyger Valley from the 20 July 2026 letter (management team blank, as on that letter). Paarl has only its address, from the liquor licence renewal notice; fill in its owners and team once. Each store keeps its own entries and photos, so switching store does not wipe another store's draft."), /* @__PURE__ */ h("div", { style: muted }, "The letter fields (letter date, address, attention, greeting, signer) are used by the QHRM letter generator. A blank letter date means the date the letter is generated; blank signer fields default to Roscoe Sanders, Bossa Group.")), /* @__PURE__ */ h(Section, { heading: "Automatic C grading", id: "autoc", collapsible: true, defaultOpen: false }, /* @__PURE__ */ h(Text, null, "Major non-conformance to required operational standards of Bossa may result in an automatic C grading for the entire section or the overall report, with specific reference to:"), /* @__PURE__ */ h(NumberedList, { items: AUTO_C })), /* @__PURE__ */ h(Section, { heading: "Checklist", id: "checklist" }, delMsg ? /* @__PURE__ */ h("div", { class: "note", role: "status", "data-t": "del-msg", style: { borderColor: th.text.danger } }, delMsg, " ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => setDelMsg("") }, "OK")) : null, /* @__PURE__ */ h(Segmented, { options: [{ value: "all", label: "All" }, { value: "todo", label: "To do", count: TOTAL - all.done }, { value: "bc", label: "B & C", count: all.B + all.C }], value: filter, onChange: (x) => setFilter(x) }), /* @__PURE__ */ h(Input, { value: query, onChange: (x) => setQuery(x), placeholder: "Search items or sections" }), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Collapse all", onClick: () => openAll(false) }), /* @__PURE__ */ h(Button, { label: "Expand all", onClick: () => openAll(true) })), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, AREAS.map((area) => {
       const secs = SECS.filter((s) => s.area === area);
       return /* @__PURE__ */ h("div", { key: area, style: { marginTop: 18 } }, /* @__PURE__ */ h("div", { style: { fontSize: 12, letterSpacing: "0.06em", color: th.text.tertiary, fontWeight: th.weight.semibold, marginBottom: 6 } }, area), secs.map((s) => {
         const si = SECS.indexOf(s);
@@ -1406,11 +1601,20 @@
           return [s.label, secStats[i].done + "/" + secStats[i].total, secStats[i].A + " / " + secStats[i].B + " / " + secStats[i].C, g ? { text: g, tone: g === "A" ? "success" : g === "B" ? "warning" : "danger" } : "-"];
         })
       }
-    ), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, fontWeight: th.weight.semibold, color: th.text.primary, margin: "4px 0 4px" } }, "Overall grading: Store Operational Standards"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 8 } }, "A = Excellent, B = Needs improvement, C = Unacceptable"), /* @__PURE__ */ h(GradeRow, { value: vals["ov"] || "", na: false, onPick: (x) => set("ov", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["ovn"] || "", onChange: (x) => set("ovn", x), placeholder: "Comments on operational standards and non-conformance" }), NONCON.map((n, i) => /* @__PURE__ */ h("div", { key: n, style: { padding: "14px 0", borderTop: "1px solid " + th.border.subtle, marginTop: i === 0 ? 14 : 0 } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, color: th.text.primary, marginBottom: 8 } }, n), /* @__PURE__ */ h(GradeRow, { value: vals["nc" + i + ":g"] || "", na: false, onPick: (x) => set("nc" + i + ":g", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["nc" + i + ":c"] || "", onChange: (x) => set("nc" + i + ":c", x), placeholder: "Comment" })))), SIGN.map(([k, lab]) => /* @__PURE__ */ h(Input, { key: k, label: lab, value: vals["x:" + k] || "", onChange: (x) => set("x:" + k, x) }))), /* @__PURE__ */ h(Section, { heading: "Export and backup", id: "export" }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, color: th.text.primary, fontWeight: th.weight.semibold } }, "Report with photos"), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Download photo report (.html)", variant: "primary", onClick: () => download(stamp + "_findings.html", buildReport(vals, byKey), "text/html", false) }), /* @__PURE__ */ h(Button, { label: "Share photo report", onClick: () => {
+    ), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, fontWeight: th.weight.semibold, color: th.text.primary, margin: "4px 0 4px" } }, "Overall grading: Store Operational Standards"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 8 } }, "A = Excellent, B = Needs improvement, C = Unacceptable"), /* @__PURE__ */ h(GradeRow, { value: vals["ov"] || "", na: false, onPick: (x) => set("ov", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["ovn"] || "", onChange: (x) => set("ovn", x), placeholder: "Comments on operational standards and non-conformance" }), NONCON.map((n, i) => /* @__PURE__ */ h("div", { key: n, style: { padding: "14px 0", borderTop: "1px solid " + th.border.subtle, marginTop: i === 0 ? 14 : 0 } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, color: th.text.primary, marginBottom: 8 } }, n), /* @__PURE__ */ h(GradeRow, { value: vals["nc" + i + ":g"] || "", na: false, onPick: (x) => set("nc" + i + ":g", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["nc" + i + ":c"] || "", onChange: (x) => set("nc" + i + ":c", x), placeholder: "Comment" })))), SIGN.map(([k, lab]) => /* @__PURE__ */ h(Input, { key: k, label: lab, value: vals["x:" + k] || "", onChange: (x) => set("x:" + k, x) }))), /* @__PURE__ */ h(Section, { heading: "Letter date", id: "letterdate" }, /* @__PURE__ */ h(Input, { label: (DETAILS.find(([k]) => k === "ldate") || ["", "Letter date (blank = today)"])[1], value: vals["d:ldate"] || "", onChange: (x) => set("d:ldate", x), placeholder: DETAIL_HINT["ldate"] }), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Set letter date to today", onClick: () => set("d:ldate", (/* @__PURE__ */ new Date()).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })) })), /* @__PURE__ */ h("div", { style: muted }, "The date printed on the QHRM letter. A blank letter date means the date the letter is generated.")), /* @__PURE__ */ h(Section, { heading: "Export and backup", id: "export" }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, color: th.text.primary, fontWeight: th.weight.semibold } }, "Report with photos"), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Download photo report (.html)", variant: "primary", onClick: () => download(stamp + "_findings.html", buildReport(vals, byKey), "text/html", false) }), /* @__PURE__ */ h(Button, { label: "Share photo report", onClick: () => {
       shareReport();
     } })), /* @__PURE__ */ h("div", { style: muted }, "One self-contained HTML file: store details, totals, every B/C finding with its comment and embedded photos, section comments, other photo evidence, non-conformance and sign-off. Open it in the phone's browser and use Print, then Save as PDF, for a PDF copy."), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, color: th.text.primary, fontWeight: th.weight.semibold, marginTop: 6 } }, "Text and spreadsheet (photo counts only)"), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Copy findings", onClick: () => copyText(buildFindings(vals, pc), "Findings") }), /* @__PURE__ */ h(Button, { label: "Download findings (.txt)", onClick: () => download(stamp + "_findings.txt", buildFindings(vals, pc), "text/plain") }), /* @__PURE__ */ h(Button, { label: "Download full CSV", onClick: () => download(stamp + "_full.csv", "\uFEFF" + buildCsv(vals, pc), "text/csv") })), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, color: th.text.primary, fontWeight: th.weight.semibold, marginTop: 6 } }, "Backup"), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Save backup to phone", variant: "primary", onClick: () => {
       shareBackup();
-    } }), /* @__PURE__ */ h(Button, { label: "Download full backup (with photos)", onClick: () => doBackup() }), /* @__PURE__ */ h(Button, { label: "Copy backup (entries only, no photos)", onClick: () => copyText(JSON.stringify(vals), "Backup (entries only, photos excluded)") })), /* @__PURE__ */ h("div", { style: muted }, lastTxt, curS ? " (" + curS.short + ")" : "", ". The full backup is a .json file containing every entry and every photo. The copied text backup holds entries only and excludes photos. Save backup to phone opens the share sheet so you can send the full backup to OneDrive, WhatsApp or email (or save it to Files); where sharing is not available it downloads instead."), msg ? /* @__PURE__ */ h(Text, null, msg) : null, exportText ? /* @__PURE__ */ h("textarea", { readOnly: true, value: exportText, rows: 8, onFocus: (e) => e.target.select(), style: { width: "100%", boxSizing: "border-box", padding: 10, fontSize: 13, fontFamily: th.font.mono, color: th.text.primary, background: th.bg.subtle, border: "1px solid " + th.border.default, borderRadius: th.radius.md } }) : null, /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { fontSize: 14, fontWeight: th.weight.semibold, color: th.text.primary, marginTop: 6 } }, "Restore from a backup"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 6 } }, "Choose a full backup file (.json, restores entries and photos, replacing the photos on this device), or paste copied backup text (entries only; photos on this device are kept)."), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Restore from backup file", onClick: () => {
+    } }), /* @__PURE__ */ h(Button, { label: "Download full backup (with photos)", onClick: () => doBackup() }), /* @__PURE__ */ h(Button, { label: "Copy backup (entries only, no photos)", onClick: () => copyText(JSON.stringify(vals), "Backup (entries only, photos excluded)") })), /* @__PURE__ */ h("div", { style: muted }, lastTxt, curS ? " (" + curS.short + ")" : "", ". The full backup is a .json file containing every entry and every photo. The copied text backup holds entries only and excludes photos. Save backup to phone opens the share sheet so you can send the full backup to OneDrive, WhatsApp or email (or save it to Files); where sharing is not available it downloads instead."), /* @__PURE__ */ h("div", { "data-t": "autobackups", style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { fontSize: 14, fontWeight: th.weight.semibold, color: th.text.primary, marginTop: 6 } }, "Auto backups"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 6 } }, "Kept automatically inside the app on this phone (every 5 minutes while you work, when you leave the app, and before Clear entries or a restore); the last " + AUTO_KEEP + " per store, with photos. They are lost if the browser's site data is cleared, so still save a backup file now and then."), snaps.filter((sn) => sn.st === sk0).length === 0 ? /* @__PURE__ */ h("div", { style: { ...muted } }, "No auto backups yet" + (curS ? " for " + curS.short : "") + ".") : null, snaps.filter((sn) => sn.st === sk0).map((sn) => /* @__PURE__ */ h("div", { key: sn.id, "data-t": "snap", style: { padding: "10px 0", borderTop: "1px solid " + th.border.subtle } }, /* @__PURE__ */ h("div", { style: { fontSize: 14, color: th.text.primary } }, new Date(sn.ts).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }), /* @__PURE__ */ h("span", { style: { ...muted, fontSize: 12 } }, " · " + sn.n + " entr" + (sn.n === 1 ? "y" : "ies") + " · " + sn.p + " photo" + (sn.p === 1 ? "" : "s") + (sn.why !== "auto" ? " · " + sn.why : ""))), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 } }, /* @__PURE__ */ h(Button, { label: snapArm === sn.id ? "Tap again to restore (replaces current entries and photos)" : "Restore", onClick: () => {
+      if (snapArm !== sn.id) {
+        setSnapArm(sn.id);
+        window.setTimeout(() => setSnapArm((a) => a === sn.id ? "" : a), 5e3);
+        return;
+      }
+      restoreSnap(sn);
+    } }), /* @__PURE__ */ h(Button, { label: "Save as file", onClick: () => {
+      saveSnapFile(sn);
+    } })))), snapMsg ? /* @__PURE__ */ h("div", { role: "status", style: { ...muted, fontSize: 13, color: th.text.accent, marginTop: 6 } }, snapMsg) : null), msg ? /* @__PURE__ */ h(Text, null, msg) : null, exportText ? /* @__PURE__ */ h("textarea", { readOnly: true, value: exportText, rows: 8, onFocus: (e) => e.target.select(), style: { width: "100%", boxSizing: "border-box", padding: 10, fontSize: 13, fontFamily: th.font.mono, color: th.text.primary, background: th.bg.subtle, border: "1px solid " + th.border.default, borderRadius: th.radius.md } }) : null, /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { fontSize: 14, fontWeight: th.weight.semibold, color: th.text.primary, marginTop: 6 } }, "Restore from a backup"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 6 } }, "Choose a full backup file (.json, restores entries and photos, replacing the photos on this device), or paste copied backup text (entries only; photos on this device are kept)."), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Restore from backup file", onClick: () => {
       const el = fileRef.current;
       if (el) {
         el.value = "";
@@ -1424,13 +1628,15 @@
         window.setTimeout(() => setArm(false), 4e3);
         return;
       }
-      setVals(cur ? { ...storeDetails(cur, true), "d:store": cur } : { ...DEFAULTS });
-      setNotes({});
-      setOpen({});
-      setArm(false);
-      setExportText("");
-      clearDirty(cur || "_");
-      replacePhotos([]).then(() => setMsg("Cleared " + (curS ? curS.label + " " : "") + "entries and photos; store details kept. New inspection started. Other stores' drafts are untouched."));
+      snapCur("before new inspection").catch(() => false).then(() => {
+        setVals(cur ? { ...storeDetails(cur, true), "d:store": cur } : { ...DEFAULTS });
+        setNotes({});
+        setOpen({});
+        setArm(false);
+        setExportText("");
+        clearDirty(cur || "_");
+        replacePhotos([]).then(() => setMsg("Cleared " + (curS ? curS.label + " " : "") + "entries and photos; store details kept. New inspection started. Other stores' drafts are untouched."));
+      });
     } }))), /* @__PURE__ */ h("div", { "data-t": "danger-zone", style: { fontFamily: th.font.family, marginTop: 28, paddingTop: 16, borderTop: "2px dashed " + th.text.danger } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, fontWeight: th.weight.semibold, color: th.text.danger, marginBottom: 4 } }, "Danger zone"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 10 } }, "Clear entries: removes every answer, comment, weight, grade, sign-off and photo entered for " + (curS ? curS.label : "the current inspection") + " (" + isoDay(vals) + ") from this phone. The checklist, the store and its store details stay. You will be asked to confirm twice."), /* @__PURE__ */ h("button", { type: "button", "data-t": "del-current", style: { ...dangerBtn, width: "100%" }, onClick: () => askDelete(cur) }, "Clear entries…"), delMsg ? /* @__PURE__ */ h("div", { role: "status", style: { fontSize: 14, color: th.text.danger, marginTop: 8 } }, delMsg) : null)), /* @__PURE__ */ h(Section, { heading: "How grading works", id: "notes", collapsible: true, defaultOpen: false }, /* @__PURE__ */ h(Text, null, "The source sheet has no formulas, weights or totals. Each section ends with a GRADING line where the inspector circles A, B or C, and the report closes with an overall grade (A = Excellent, B = Needs improvement, C = Unacceptable) chosen by the inspector. The A/B/C counts on this page are simple tallies to guide that call; the official Bossa scoring method is not in the file."), /* @__PURE__ */ h(Text, null, "N/A is an addition for items that do not apply; it is not on the paper form. Portion-weight lines take three weighings (Weight 1, 2 and 3) and no grade; they count as done once all three are entered and are left out of the A/B/C tallies. The spec shown is the weight in the item name; the sheet gives no tolerance, so the average is shown without a pass/fail. Older backups with a single weight load it as Weight 1, and any old grade on a weight line is kept as a note in its comment. Menu-count lines have no A/B/C boxes on paper, so they count as done once a count is entered."), /* @__PURE__ */ h(Text, null, 'QHRM letter: the comment on each line becomes a bullet under its section in the letter, word for word, and "Mark as repeat" adds "(Repeat)" after it. Weight lines appear in the letter only when they have a comment; the three weights are added to that bullet (e.g. 160/170/170g). Section additional comments, non-conformance grades and comments, and the letter fields under Store details are used as written. Older backups without these fields still load; the new fields are simply blank.'), /* @__PURE__ */ h(Text, null, "Photos: Camera opens the phone camera and Gallery picks existing pictures (several at once). Each photo is shrunk on the phone to at most 1280 px on the longest side (JPEG quality 0.7, usually 100-300 KB) plus a small thumbnail, and kept in this browser's on-device database. The bar at the top shows how many are saved and the space they use; a red warning means this browser cannot keep photos, so download the photo report or the full backup before closing. Photos never leave the phone unless you download or share a report or backup.")), delDialog, /* @__PURE__ */ h("p", { class: "foot" }, "QHRM Checklist app v", APP_VERSION, " · works offline · entries and photos are kept only in this browser on this phone"));
   }
   const appEl = document.getElementById("app");

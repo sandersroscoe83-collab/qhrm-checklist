@@ -54,4 +54,10 @@ All paths are relative, so it works from any sub-path. Test locally with `python
 - Same format as the Page: `{v: 2, store, storeName, vals, photos}`. Restore here accepts backups
   from the Page and vice versa; `make_report.py` accepts both (.json or .txt).
 - Data lives only in this browser on this phone and is separate from the Page's data. Clearing the
-  browser's site data deletes it, so keep backing up (reminder after 12 changes or 15 minutes).
+  browser's site data deletes it, so keep backing up (entries autosave on the phone; there is no backup pop-up, the top bar shows "Autosaved ✓ · last backup file: ...").
+- v1.1.2: entries autosave on every change; the old "Backup reminder" box (every 12 changes / 15 min, with Dismiss)
+  is gone. Auto backups: rolling snapshots of the current store's full backup (with photos) are kept inside the app
+  (IndexedDB `qhrm-autobackups-v1`, last 5 per store), taken every 5 minutes while you work, when the app goes to the
+  background, and before Clear entries / Start new inspection / a restore. Export and backup lists them with Restore
+  (two taps) and Save as file. "Save backup file" next to the Autosaved line saves/shares the normal backup. The letter
+  date now has its own section just above Export and backup.
