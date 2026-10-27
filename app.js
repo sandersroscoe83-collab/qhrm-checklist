@@ -7,7 +7,7 @@
   const useEffect = PR.useEffect;
   const useMemo = PR.useMemo;
   const useRef = PR.useRef;
-  const APP_VERSION = "1.1.6";
+  const APP_VERSION = "1.1.7";
   const TH = {
     fill: { successSubtle: "var(--okS)", warningSubtle: "var(--warnS)", dangerSubtle: "var(--badS)", secondary: "var(--fill2)" },
     text: { success: "var(--ok)", warning: "var(--warn)", danger: "var(--bad)", primary: "var(--tx)", secondary: "var(--tx2)", tertiary: "var(--tx3)", accent: "var(--acc)" },
@@ -608,6 +608,15 @@
     const [delTxt, setDelTxt] = useState("");
     const [delMsg, setDelMsg] = useState("");
     const cur = vals["d:store"] || "";
+    const urlStore = () => {
+      try {
+        const s = new URLSearchParams(window.location.search).get("store") || "";
+        return storeOf(s) ? s : "";
+      } catch (e) {
+        return "";
+      }
+    };
+    const [home, setHome] = useState(() => !urlStore());
     const curS = storeOf(cur);
     const photos = useMemo(() => allPhotos.filter((p) => (p.st || "") === cur), [allPhotos, cur]);
     const allRef = useRef([]);
@@ -1190,7 +1199,7 @@
       ro.observe(el);
       fit();
       return () => ro.disconnect();
-    }, []);
+    }, [home]);
     const [barMsg, setBarMsg] = useState("");
     useEffect(() => {
       setBarMsg(bkMsg);
@@ -1558,13 +1567,108 @@
         setView(null);
       } }), /* @__PURE__ */ h("span", { style: { ...muted, fontSize: 12 } }, vi + 1, " / ", ps.length, " · ", new Date(cur2.ts).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })))) : null);
     };
+    const switchRef = useRef(doSwitch);
+    switchRef.current = doSwitch;
+    const saveNow = () => {
+      if (!okRef.current) return;
+      const v = valsRef.current;
+      try {
+        window.localStorage.setItem(KEY, JSON.stringify(v));
+        const c = v["d:store"] || "";
+        if (c) {
+          const prof = readJson(PKEY) || {};
+          const p = {};
+          for (const f of PROFILE_F) p[f] = v["d:" + f] || "";
+          prof[c] = p;
+          window.localStorage.setItem(PKEY, JSON.stringify(prof));
+        }
+        setSavedAt(fmtWhen(Date.now()));
+      } catch (e) {
+        setOk(false);
+      }
+    };
+    const saveNowRef = useRef(saveNow);
+    saveNowRef.current = saveNow;
+    const goingRef = useRef("");
+    const goTo = (to) => {
+      if (to !== curRef.current) {
+        goingRef.current = to;
+        switchRef.current(to);
+      }
+    };
+    useEffect(() => {
+      if (goingRef.current && cur !== goingRef.current) return;
+      goingRef.current = "";
+      if (!home && cur && urlStore() !== cur) {
+        try {
+          window.history.replaceState(window.history.state, "", "?store=" + cur);
+        } catch (e) {
+        }
+      }
+    }, [cur, home]);
+    useEffect(() => {
+      const s0 = urlStore();
+      if (s0) goTo(s0);
+      const onPop = () => {
+        const s = urlStore();
+        if (s) {
+          goTo(s);
+          setHome(false);
+        } else {
+          saveNowRef.current();
+          snapRef.current("on leave");
+          setHome(true);
+        }
+        window.scrollTo(0, 0);
+      };
+      window.addEventListener("popstate", onPop);
+      return () => window.removeEventListener("popstate", onPop);
+    }, []);
+    const openStore = (id) => {
+      goTo(id);
+      try {
+        window.history.pushState({ qhrm: "store" }, "", "?store=" + id);
+      } catch (e) {
+      }
+      setHome(false);
+      window.scrollTo(0, 0);
+    };
+    const goHome = () => {
+      saveNow();
+      snapCur("on leave");
+      const hs = window.history.state;
+      if (hs && hs.qhrm === "store") {
+        window.history.back();
+        return;
+      }
+      try {
+        window.history.replaceState(null, "", window.location.pathname);
+      } catch (e) {
+      }
+      setHome(true);
+      window.scrollTo(0, 0);
+    };
+    if (home) {
+      const allItems = SECS.reduce((a, s) => a.concat(s.items), []);
+      const sub = (id) => {
+        let v = null;
+        if (id === cur) v = vals;
+        else {
+          const o = readJson(DKEY + id);
+          v = o ? migrate(o) : null;
+        }
+        const s = v ? stats(allItems, v) : null;
+        return s && s.done > 0 ? s.done + " / " + TOTAL + " done" + (s.C ? " · C " + s.C : "") : "Not started";
+      };
+      return /* @__PURE__ */ h("main", { class: "page home", "data-t": "home" }, /* @__PURE__ */ h("div", { class: "hlogo" }, /* @__PURE__ */ h("img", { src: "jb-logo.svg", alt: "Jackson & Black", width: "200", height: "72" })), /* @__PURE__ */ h("h1", { class: "htitle" }, "Jackson and Black QHRM"), /* @__PURE__ */ h("div", { class: "hlist" }, STORES.map((s) => /* @__PURE__ */ h("button", { type: "button", class: "hbtn" + (s.id === cur ? " cur" : ""), "data-t": "home-store", "data-store": s.id, onClick: () => openStore(s.id) }, /* @__PURE__ */ h("span", { class: "hname" }, "Jackson and Black " + s.short), /* @__PURE__ */ h("span", { class: "hsub", "data-t": "home-sub" }, sub(s.id))))), /* @__PURE__ */ h("div", { class: "hphoto", "data-t": "home-photo" }, /* @__PURE__ */ h("img", { src: "start-photo.webp", alt: "Jackson and Black", width: "900", height: "900" })));
+    }
     return /* @__PURE__ */ h(Page, { title: "Jackson and Black QHRM", width: "column" }, upd ? /* @__PURE__ */ h("div", { class: "note", role: "status" }, "A new version of the app is ready. Your entries are saved. ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => window.location.reload() }, "Reload")) : null, inst ? /* @__PURE__ */ h("div", { class: "note" }, "Install the checklist on this phone for offline use and safer storage. ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => {
       inst.prompt();
       inst.userChoice.then(() => {
         setInst(null);
         ask();
       }, () => setInst(null));
-    } }, "Install app")) : null, saveOff ? /* @__PURE__ */ h(Callout, { tone: "danger", lead: !ok ? "Saving is OFF in this browser." : "Saving photos is OFF in this browser." }, !ok ? "Your entries and photos will be LOST when this page closes or refreshes. Download a full backup (with photos) regularly. Check the browser is not in private (incognito) mode and the phone has free space." : "Your photos will be LOST when this page closes or refreshes (entries still save on this device). Download a full backup (with photos) regularly. Check the browser is not in private (incognito) mode and the phone has free space.") : null, /* @__PURE__ */ h("div", { "data-t": "topbar", style: { position: "sticky", top: 0, zIndex: 5, background: th.bg.base, padding: "6px 0 4px", borderBottom: "1px solid " + th.border.subtle, fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: "4px 14px", fontSize: 15, color: th.text.primary } }, /* @__PURE__ */ h("span", { style: { fontWeight: th.weight.semibold, color: curS ? th.text.primary : th.text.danger } }, curS ? curS.short : "No store picked"), /* @__PURE__ */ h("span", { style: { fontWeight: th.weight.semibold } }, all.done, " / ", TOTAL, " done"), /* @__PURE__ */ h("span", { style: { color: th.text.success } }, "A ", all.A), /* @__PURE__ */ h("span", { style: { color: th.text.warning } }, "B ", all.B), /* @__PURE__ */ h("span", { style: { color: th.text.danger } }, "C ", all.C), /* @__PURE__ */ h("span", { style: { color: th.text.secondary } }, "N/A ", all.NA)), /* @__PURE__ */ h(ProgressBar, { s: all }), /* @__PURE__ */ h("div", { style: { display: "flex", alignItems: "center", gap: 6, marginTop: 4 } }, /* @__PURE__ */ h("button", { type: "button", "data-t": "autosave", onClick: () => scrollToEl("bkstatus"), title: "Backup and storage details", style: { flex: "1 1 auto", minWidth: 0, minHeight: 30, padding: 0, textAlign: "left", background: "transparent", border: "none", cursor: "pointer", fontFamily: th.font.family, fontSize: 12, color: !ok ? th.text.danger : th.text.secondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", touchAction: "manipulation" } }, (ok ? "Autosaved ✓" + (savedAt ? " " + savedAt : "") : "⚠ Saving OFF") + " · Backup: " + (lastTs ? fmtWhen(lastTs) : "none")), /* @__PURE__ */ h("button", { type: "button", "data-t": "bar-save", "aria-label": "Save backup to phone", onClick: () => {
+    } }, "Install app")) : null, saveOff ? /* @__PURE__ */ h(Callout, { tone: "danger", lead: !ok ? "Saving is OFF in this browser." : "Saving photos is OFF in this browser." }, !ok ? "Your entries and photos will be LOST when this page closes or refreshes. Download a full backup (with photos) regularly. Check the browser is not in private (incognito) mode and the phone has free space." : "Your photos will be LOST when this page closes or refreshes (entries still save on this device). Download a full backup (with photos) regularly. Check the browser is not in private (incognito) mode and the phone has free space.") : null, /* @__PURE__ */ h("div", { "data-t": "topbar", style: { position: "sticky", top: 0, zIndex: 5, background: th.bg.base, padding: "6px 0 4px", borderBottom: "1px solid " + th.border.subtle, fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: "4px 10px", alignItems: "center", fontSize: 15, color: th.text.primary } }, /* @__PURE__ */ h("button", { type: "button", "data-t": "to-home", "aria-label": "Back to restaurants", title: "Back to restaurants", onClick: () => goHome(), style: { padding: "0 7px 0 4px", margin: "0 0 0 -4px", minHeight: 24, border: "1px solid " + th.border.default, borderRadius: 6, background: th.bg.subtle, cursor: "pointer", fontFamily: th.font.family, fontSize: 15, fontWeight: th.weight.semibold, color: curS ? th.text.primary : th.text.danger, whiteSpace: "nowrap", touchAction: "manipulation" } }, "← " + (curS ? curS.short : "Restaurants")), /* @__PURE__ */ h("span", { style: { fontWeight: th.weight.semibold } }, all.done, " / ", TOTAL, " done"), /* @__PURE__ */ h("span", { style: { color: th.text.success } }, "A ", all.A), /* @__PURE__ */ h("span", { style: { color: th.text.warning } }, "B ", all.B), /* @__PURE__ */ h("span", { style: { color: th.text.danger } }, "C ", all.C), /* @__PURE__ */ h("span", { style: { color: th.text.secondary } }, "N/A ", all.NA)), /* @__PURE__ */ h(ProgressBar, { s: all }), /* @__PURE__ */ h("div", { style: { display: "flex", alignItems: "center", gap: 6, marginTop: 4 } }, /* @__PURE__ */ h("button", { type: "button", "data-t": "autosave", onClick: () => scrollToEl("bkstatus"), title: "Backup and storage details", style: { flex: "1 1 auto", minWidth: 0, minHeight: 30, padding: 0, textAlign: "left", background: "transparent", border: "none", cursor: "pointer", fontFamily: th.font.family, fontSize: 12, color: !ok ? th.text.danger : th.text.secondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", touchAction: "manipulation" } }, (ok ? "Autosaved ✓" + (savedAt ? " " + savedAt : "") : "⚠ Saving OFF") + " · Backup: " + (lastTs ? fmtWhen(lastTs) : "none")), /* @__PURE__ */ h("button", { type: "button", "data-t": "bar-save", "aria-label": "Save backup to phone", onClick: () => {
       shareBackup();
     }, style: barBtn }, "Save"), /* @__PURE__ */ h("button", { type: "button", "data-t": "bar-download", "aria-label": "Download backup", onClick: () => doBackup(), style: barBtn }, "⬇ Download")), barWarn ? /* @__PURE__ */ h("div", { "data-t": "bar-warn", onClick: () => scrollToEl("bkstatus"), style: { fontSize: 12, lineHeight: "16px", color: th.text.danger, fontWeight: th.weight.semibold, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer" } }, barWarn) : null, barNote ? /* @__PURE__ */ h("div", { "data-t": "bar-note", role: "status", style: { fontSize: 12, lineHeight: "16px", color: th.text.accent, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" } }, barNote) : null), /* @__PURE__ */ h("input", { ref: camRef, type: "file", accept: "image/*", capture: "environment", multiple: true, onChange: (e) => {
       onFiles(e);
