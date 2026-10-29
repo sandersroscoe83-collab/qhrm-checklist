@@ -7,7 +7,7 @@
   const useEffect = PR.useEffect;
   const useMemo = PR.useMemo;
   const useRef = PR.useRef;
-  const APP_VERSION = "1.1.8";
+  const APP_VERSION = "1.1.9";
   const TH = {
     fill: { successSubtle: "var(--okS)", warningSubtle: "var(--warnS)", dangerSubtle: "var(--badS)", secondary: "var(--fill2)" },
     text: { success: "var(--ok)", warning: "var(--warn)", danger: "var(--bad)", primary: "var(--tx)", secondary: "var(--tx2)", tertiary: "var(--tx3)", accent: "var(--acc)" },
@@ -22,7 +22,7 @@
     return TH;
   }
   function Page(props) {
-    return /* @__PURE__ */ h("main", { class: "page" }, /* @__PURE__ */ h("div", { class: "phead" }, /* @__PURE__ */ h("h1", { class: "ptitle" }, props.title), /* @__PURE__ */ h("span", { class: "plogo" }, /* @__PURE__ */ h("img", { src: "jb-logo.svg", alt: "Jackson & Black", width: "100", height: "36" }))), props.summary ? /* @__PURE__ */ h("p", { class: "psum" }, props.summary) : null, props.children);
+    return /* @__PURE__ */ h("main", { class: "page" }, /* @__PURE__ */ h("div", { class: "phead" }, /* @__PURE__ */ h("h1", { class: "ptitle" }, props.title), /* @__PURE__ */ h("span", { class: "plogo" }, /* @__PURE__ */ h("img", { src: "jb-logo-2026.svg", alt: "Jackson & Black", width: "44", height: "44" }))), props.summary ? /* @__PURE__ */ h("p", { class: "psum" }, props.summary) : null, props.children);
   }
   function Section(props) {
     const [o, setO] = useState(props.defaultOpen !== false);
@@ -1644,9 +1644,9 @@
         const s = v ? stats(allItems, v) : null;
         return s && s.done > 0 ? s.done + " / " + TOTAL + " done" + (s.C ? " · C " + s.C : "") : "Not started";
       };
-      return /* @__PURE__ */ h("main", { class: "page home", "data-t": "home" }, /* @__PURE__ */ h("div", { class: "hlogo" }, /* @__PURE__ */ h("img", { src: "jb-logo.svg", alt: "Jackson & Black", width: "200", height: "72" })), /* @__PURE__ */ h("h1", { class: "htitle" }, "Jackson and Black QHRM"), /* @__PURE__ */ h("div", { class: "hlist" }, STORES.map((s) => /* @__PURE__ */ h("button", { type: "button", class: "hbtn" + (s.id === cur ? " cur" : ""), "data-t": "home-store", "data-store": s.id, onClick: () => openStore(s.id) }, /* @__PURE__ */ h("span", { class: "hname" }, "Jackson and Black " + s.short), /* @__PURE__ */ h("span", { class: "hsub", "data-t": "home-sub" }, sub(s.id))))), /* @__PURE__ */ h("div", { class: "hphoto", "data-t": "home-photo" }, /* @__PURE__ */ h("img", { src: "start-photo.webp", alt: "Jackson and Black", width: "900", height: "900" })));
+      return /* @__PURE__ */ h("main", { class: "page home", "data-t": "home" }, /* @__PURE__ */ h("div", { class: "hlogo" }, /* @__PURE__ */ h("img", { src: "jb-logo-2026.svg", alt: "Jackson & Black", width: "96", height: "96" })), /* @__PURE__ */ h("h1", { class: "htitle" }, "JACKSON AND BLACK QHRM"), /* @__PURE__ */ h("div", { class: "hlist" }, STORES.map((s) => /* @__PURE__ */ h("button", { type: "button", class: "hbtn" + (s.id === cur ? " cur" : ""), "data-t": "home-store", "data-store": s.id, onClick: () => openStore(s.id) }, /* @__PURE__ */ h("span", { class: "hname" }, "Jackson and Black " + s.short), /* @__PURE__ */ h("span", { class: "hsub", "data-t": "home-sub" }, sub(s.id))))), /* @__PURE__ */ h("div", { class: "hphoto", "data-t": "home-photo" }, /* @__PURE__ */ h("img", { src: "start-photo.webp", alt: "Jackson and Black", width: "900", height: "900" })));
     }
-    return /* @__PURE__ */ h(Page, { title: "Jackson and Black QHRM", width: "column" }, upd ? /* @__PURE__ */ h("div", { class: "note", role: "status" }, "A new version of the app is ready. Your entries are saved. ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => window.location.reload() }, "Reload")) : null, inst ? /* @__PURE__ */ h("div", { class: "note" }, "Install the checklist on this phone for offline use and safer storage. ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => {
+    return /* @__PURE__ */ h(Page, { title: "JACKSON AND BLACK QHRM", width: "column" }, upd ? /* @__PURE__ */ h("div", { class: "note", role: "status" }, "A new version of the app is ready. Your entries are saved. ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => window.location.reload() }, "Reload")) : null, inst ? /* @__PURE__ */ h("div", { class: "note" }, "Install the checklist on this phone for offline use and safer storage. ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => {
       inst.prompt();
       inst.userChoice.then(() => {
         setInst(null);

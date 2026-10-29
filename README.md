@@ -66,3 +66,5 @@ All paths are relative, so it works from any sub-path. Test locally with `python
   are in Export and backup. A short red line stays in the bar if saving is off or storage is not persistent.
 - v1.1.4: the intro paragraph under the page title is no longer shown.
 - v1.1.5: the help paragraphs in Store details and Letter date are no longer shown (fields and buttons unchanged).
+- v1.1.9: the in-app logo (title row and start screen) is the 2026 J&B badge from the letterhead (`jb-logo-2026.svg`,
+  vector, from "2026 Jackson & Black Updated White Logo Vector.pdf") on a burgundy chip. Home-screen icon unchanged.

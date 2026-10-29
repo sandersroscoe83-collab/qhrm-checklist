@@ -1,6 +1,6 @@
 /* QHRM Checklist service worker: keeps the app shell for offline use.
    Bump CACHE whenever any shell file changes so phones pick up the update. */
-const CACHE = "qhrm-shell-v17";
+const CACHE = "qhrm-shell-v18";
 const SHELL = [
   "./",
   "./index.html",
@@ -10,7 +10,7 @@ const SHELL = [
   "./icons/icon-192.png",
   "./icons/icon-512.png",
   "./icons/icon-maskable-512.png",
-  "./jb-logo.svg",
+  "./jb-logo-2026.svg",
   "./start-photo.webp",
 ];
 
