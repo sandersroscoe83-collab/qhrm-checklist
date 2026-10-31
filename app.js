@@ -7,7 +7,7 @@
   const useEffect = PR.useEffect;
   const useMemo = PR.useMemo;
   const useRef = PR.useRef;
-  const APP_VERSION = "1.1.9";
+  const APP_VERSION = "1.2.0";
   const TH = {
     fill: { successSubtle: "var(--okS)", warningSubtle: "var(--warnS)", dangerSubtle: "var(--badS)", secondary: "var(--fill2)" },
     text: { success: "var(--ok)", warning: "var(--warn)", danger: "var(--bad)", primary: "var(--tx)", secondary: "var(--tx2)", tertiary: "var(--tx3)", accent: "var(--acc)" },
@@ -91,34 +91,34 @@
     ["BACK OF HOUSE", "HYGEINE STANDARDS AND EQUIPMENT", "Hygeine standards and equipment", [["Wringer buckets - codition and cleanliness", "g"], ["Colour coded hygeine buckets and cloths", "g"], ["Colour coded Brooms and Mops", "g"], ["Chemical spray bottles", "g"], ["Hand sanitizer and anti-bacterial soap", "g"], ["Dustbins", "g"], ["Sectional colour coding being followed", "g"]]],
     ["BACK OF HOUSE", "MEAT AGING AND RECEIVING", "Meat Aging", [["Quality of meat cuts", "g"], ["Correct ageing of bulk meats", "g"], ["Correct use of meat ageing register", "g"], ["Correct use of meat receiving register", "g"], ["Correct quantities of bulk meat available", "g"], ["Fridges - check seals, temperature, hygiene, cleanliness", "g"]]]
   ];
-  const SECS = RAW.map((r, si) => ({
+  let SECS = RAW.map((r, si) => ({
     id: "s" + si,
     area: r[0],
     title: r[1],
     label: r[2],
     items: r[3].map((it, ii) => ({ id: "s" + si + "i" + ii, text: it[0], t: it[1], sg: it[2] || "" }))
   }));
-  const TOTAL = SECS.reduce((n, s) => n + s.items.length, 0);
-  const AREAS = ["FRONT OF HOUSE", "STORES", "BACK OF HOUSE"];
-  const DETAILS = [["ldate", "Letter date (blank = today)"], ["name", "Restaurant name & location"], ["addr", "Store address (one line per row)"], ["owner", "Restaurant owner"], ["att", "Attention (owners, as on the letter)"], ["dear", "Greeting names (Dear ...)"], ["team", "Management team"], ["when", "Date & time"], ["last", "Last grading"], ["this", "This grading"], ["food", "Foodcost %"], ["sig", "Letter signed by"], ["org", "Signer's company"]];
-  const DETAIL_HINT = { ldate: "e.g. 16 September 2026", addr: "Street\nTown\nPostal code", att: "Defaults to Restaurant owner", dear: "e.g. Jopie, Tercia (Management Team is added)", sig: "Roscoe Sanders", org: "Bossa Group" };
+  let TOTAL = SECS.reduce((n, s) => n + s.items.length, 0);
+  let AREAS = ["FRONT OF HOUSE", "STORES", "BACK OF HOUSE"];
+  let DETAILS = [["ldate", "Letter date (blank = today)"], ["name", "Restaurant name & location"], ["addr", "Store address (one line per row)"], ["owner", "Restaurant owner"], ["att", "Attention (owners, as on the letter)"], ["dear", "Greeting names (Dear ...)"], ["team", "Management team"], ["when", "Date & time"], ["last", "Last grading"], ["this", "This grading"], ["food", "Foodcost %"], ["sig", "Letter signed by"], ["org", "Signer's company"]];
+  let DETAIL_HINT = { ldate: "e.g. 16 September 2026", addr: "Street\nTown\nPostal code", att: "Defaults to Restaurant owner", dear: "e.g. Jopie, Tercia (Management Team is added)", sig: "Roscoe Sanders", org: "Bossa Group" };
   function cmR(v, id) {
     const c = v[id + ":c"] || "";
     return v[id + ":r"] ? (c ? c + " " : "") + "(Repeat)" : c;
   }
-  const AUTO_C = ["Poor hygiene standards", "Poor building standards (excessive R&M)", "Poor state of equipment", "Non use of licensed/recommended products", "Off (unservable) diversified or unavailable products", "Non-conformance to operational requirements", "Non rectification of previous/outstanding points & reply on H/O letter", "Altering/non conformance to franchise recipes"];
-  const NONCON = ["1. CONDITION OF EQUIPMENT", "2. NON-USE OF LICENCED / RECOMMENDED PRODUCTS", "3. OFF (UNSERVABLE) DIVERSIFIED OR UNAVAILABLE PRODUCTS", "4. NON-CONFORMANCE TO OPERATIONAL REQUIREMENTS", "5. NON-RECTIFICATION OF PREVIOUS / OUTSTANDING POINTS & REPLY ON H/O LETTER", "6. ALTERING / NON-CONFORMANCE TO FRANCHISE RECIPES"];
+  let AUTO_C = ["Poor hygiene standards", "Poor building standards (excessive R&M)", "Poor state of equipment", "Non use of licensed/recommended products", "Off (unservable) diversified or unavailable products", "Non-conformance to operational requirements", "Non rectification of previous/outstanding points & reply on H/O letter", "Altering/non conformance to franchise recipes"];
+  let NONCON = ["1. CONDITION OF EQUIPMENT", "2. NON-USE OF LICENCED / RECOMMENDED PRODUCTS", "3. OFF (UNSERVABLE) DIVERSIFIED OR UNAVAILABLE PRODUCTS", "4. NON-CONFORMANCE TO OPERATIONAL REQUIREMENTS", "5. NON-RECTIFICATION OF PREVIOUS / OUTSTANDING POINTS & REPLY ON H/O LETTER", "6. ALTERING / NON-CONFORMANCE TO FRANCHISE RECIPES"];
   const SIGN = [["at", "Signed at"], ["fr", "For & on behalf of Franchisor"], ["frn", "Full name (Franchisor)"], ["sr", "Snr. Store Representative"], ["srn", "Full name (Store Representative)"]];
-  const KEY = "qhrm-checklist-jb-paarl-v1";
-  const DEFAULTS = {};
+  let KEY = "qhrm-checklist-jb-paarl-v1";
+  let DEFAULTS = {};
   const STORES = [
     { id: "strand", label: "Jackson & Black Strand", short: "Strand", file: "Strand", d: { name: "Jackson & Black Strand", addr: "Ocean Breeze Hotel & Conference Centre\n17-19 Beach Road\nStrand\n7130", owner: "Jopie & Tercia Kuhn", att: "Jopie & Tercia Kuhn", dear: "Jopie, Tercia", team: "Marius & Christal", last: "B" } },
     { id: "tyger", label: "Jackson & Black Tyger Valley", short: "Tyger Valley", file: "TygerValley", d: { name: "Jackson & Black Tygervalley", addr: "Cnr Bill Bezuidenhout & Sportica Crescent\nBellville\nTygervalley\n7530", owner: "Rudi & Monica", att: "Rudi & Monica", dear: "Rudi, Monica", last: "B" } },
     { id: "paarl", label: "Jackson & Black Paarl", short: "Paarl", file: "Paarl", d: { name: "Jackson & Black Paarl", addr: "40 Main Street\nPaarl\n7646" } }
   ];
-  const PROFILE_F = ["name", "addr", "owner", "att", "dear", "team", "last"];
-  const PKEY = "qhrm-store-profiles-v1";
-  const DKEY = "qhrm-draft-v1-";
+  let PROFILE_F = ["name", "addr", "owner", "att", "dear", "team", "last"];
+  let PKEY = "qhrm-store-profiles-v1";
+  let DKEY = "qhrm-draft-v1-";
   function storeOf(id) {
     for (const s of STORES) if (s.id === id) return s;
     return null;
@@ -135,9 +135,11 @@
     const s = storeOf(id);
     const prof = useSaved ? readJson(PKEY) || {} : {};
     const p = prof[id];
-    const out = {};
+    const qp = IS_SVC && useSaved ? (readJson(Q_PKEY) || {})[id] : void 0;
+    const out = IS_SVC ? { "d:report": "service" } : {};
     for (const f of PROFILE_F) {
-      const x = p && typeof p[f] === "string" ? p[f] : s ? s.d[f] || "" : "";
+      const dflt = !IS_SVC ? s ? s.d[f] || "" : "" : SVC_DEF_F.indexOf(f) < 0 ? "" : qp && typeof qp[f] === "string" && qp[f] ? qp[f] : s ? s.d[f] || "" : "";
+      const x = p && typeof p[f] === "string" ? p[f] : dflt;
       if (x) out["d:" + f] = x;
     }
     return out;
@@ -148,8 +150,8 @@
   function two(n) {
     return ("0" + n).slice(-2);
   }
-  const BKEY = "qhrm-last-backup-v1";
-  const CKEY = "qhrm-collapsed-v1";
+  let BKEY = "qhrm-last-backup-v1";
+  let CKEY = "qhrm-collapsed-v1";
   function loadOpen() {
     const o = {};
     try {
@@ -169,7 +171,7 @@
     } catch (e) {
     }
   }
-  const XKEY = "qhrm-dirty-v1";
+  let XKEY = "qhrm-dirty-v1";
   const REMIND_MS = 15 * 60 * 1e3;
   function loadLastBk() {
     const o = readJson(BKEY);
@@ -217,7 +219,7 @@
       return { vals: { ...DEFAULTS }, ok: false };
     }
   }
-  const WITEMS = SECS.reduce((a, s) => a.concat(s.items.filter((it) => it.t === "w")), []);
+  let WITEMS = SECS.reduce((a, s) => a.concat(s.items.filter((it) => it.t === "w")), []);
   function migrate(src) {
     const v = { ...src };
     for (const it of WITEMS) {
@@ -233,6 +235,7 @@
         delete v[it.id + ":g"];
       }
     }
+    if (IS_SVC) v["d:report"] = "service";
     return v;
   }
   function specOf(text) {
@@ -270,9 +273,9 @@
   function q(s) {
     return '"' + (s || "").replace(/"/g, '""') + '"';
   }
-  const DB_NAME = "qhrm-photos-jb-paarl";
+  let DB_NAME = "qhrm-photos-jb-paarl";
   const PSTORE = "photos";
-  const ADB_NAME = "qhrm-autobackups-v1";
+  let ADB_NAME = "qhrm-autobackups-v1";
   const AUTO_KEEP = 5;
   const AUTO_MS = 5 * 60 * 1e3;
   function hashStr(s) {
@@ -314,8 +317,8 @@
       }
     });
   }
-  const KEYLABEL = {};
-  const KEYORDER = [];
+  let KEYLABEL = {};
+  let KEYORDER = [];
   SECS.forEach((s) => {
     s.items.forEach((it) => {
       KEYLABEL[it.id] = s.title + " - " + it.text;
@@ -324,6 +327,79 @@
     KEYLABEL["sec:" + s.id] = s.title + " - additional comments";
     KEYORDER.push("sec:" + s.id);
   });
+  let REPORT = "qhrm";
+  let IS_SVC = false;
+  let FPRE = "QHRM";
+  let SNCAP = "Additional comments";
+  let RTAG = {};
+  const Q_PKEY = "qhrm-store-profiles-v1";
+  const SVC_DEF_F = ["name", "owner", "team"];
+  const QCFG = { SECS, AREAS, DETAILS, DETAIL_HINT, AUTO_C, NONCON, KEY, DEFAULTS, PROFILE_F, PKEY, DKEY, BKEY, CKEY, XKEY, DB_NAME, ADB_NAME };
+  const SVC_RAW = [["FRONT OF HOUSE", "EXTERIOR", "Exterior", [["Store Signage (all interior and exterior)", "g"], ["Lighting", "g"], ["Cleanliness of car park, walkways, deck area etc.", "g"]]], ["FRONT OF HOUSE", "RESTAURANT AREA", "Restaurant area", [["Warm reception on arrival", "g"], ["Cash Desk (clean and organised)", "g"], ["Ambience (Playlist, T.V., Lights)", "g"], ["Waitering body - number and appearance", "g"], ["Waiter Demeanour and Friendliness", "g"], ["Staff uniforms - all departments - Bossa branded - good condition", "g"], ["Runners - Number and appearance", "g"], ["Waiter tool check (2-4 pens, bottle opener, float, docket book, etc.)", "g"], ["Waiter Interaction with Customers", "g"], ["Waiter time management", "g"], ["Table setup standard", "g"], ["Bathrooms", "g"]]], ["FRONT OF HOUSE", "MAIN BAR", "Main bar section", [["Ambience (Playlist, T.V. & Lighting set correctly)", "g"], ["Ventilation & Extractors", "g"], ["Barmen - number and appearance", "g"], ["Barman uniforms - Bossa branded", "g"], ["Efficient service of Barman", "g"], ["Barman Vibey & Teamwork", "g"], ["Pick up time of beverages", "g"], ["Bar tables & Counter Cleanliness", "g"], ["Correct procedures of changing ashtrays", "g"], ["Management interaction with barman & guests", "g"], ["Bar bathrooms Ladies & Gents", "g"]]], ["FRONT OF HOUSE", "MANAGEMENT", "Management", [["Management efficiency", "g"], ["Management Vibey & interactive w/customers", "g"], ["Managers proactive on the floor", "g"], ["Interaction with waitering body", "g"], ["Communication between FOH and kitchen", "g"], ["Appearance and uniform", "g"]]], ["BACK OF HOUSE", "KITCHEN TECHNICAL - CORRECT USAGE OF EQUIPMENT", "Kitchen technical - correct usage of equipment", [["Food manual - in good condition & up to date", "g"], ["Grill grids - regularly cleaned", "g"], ["Flat top", "g"], ["Oil quality in all fryers", "g"], ["Fryer - correct temperature", "g"], ["Bain marie - correct temperature", "g"], ["Hot passes on and working", "g"], ["Underbar fridges - correct temperature", "g"]]], ["BACK OF HOUSE", "BOH MANAGEMENT", "BOH management", [["Number on duty based on trade expectancy", "g"], ["Competency assessment", "g"], ["Time Management", "g"], ["Section prep sheets checked and in place", "g"], ["Communication between BOH & FOH management", "g"], ["Stock control / FIFO", "g"], ["Staff training (ongoing)", "g"]]], ["BACK OF HOUSE", "PLATING SECTION", "Plating section", [["Competency assessment", "g"], ["All plating products available (mayos, garnish, wing containers)", "g"], ["Chef blowtorch - working and filled with gas", "g"], ["Plating standard", "g"], ["Plates in warmer", "g"], ["Presentation of take-aways", "g"]]], ["BACK OF HOUSE", "GRILL SECTION", "Grill section", [["Competency assessment", "g"], ["Product on grill", "g"], ["Preparation standards", "g"], ["Grilling technique", "g"], ["Correct selection of meat cuts", "g"], ["Correct application of basting and seasoning", "g"], ["Efficiency on grill", "g"], ["Correct usage of flat top", "g"]]], ["BACK OF HOUSE", "HOT SECTION", "Hot section", [["Competency assessment", "g"], ["Preparation standard", "g"], ["Quality and standard of products", "g"]]], ["BACK OF HOUSE", "CHIPPING SECTION", "Chipping section", [["Competency assessment", "g"], ["Consistency of onion rings", "g"], ["Quality of blanched chips", "g"], ["Correct application of chip spice", "g"], ["Fryers skimmed regularly", "g"]]], ["BACK OF HOUSE", "SALAD SECTION", "Salad section", [["Competency assessment", "g"], ["Preparation standard", "g"], ["Plating standard", "g"], ["Correct layering of salads and nachos", "g"]]], ["BACK OF HOUSE", "DESSERT SECTION PRODUCTS", "Dessert section products", [["Preparation standard", "g"], ["Plating standard", "g"], ["Storage Standard", "g"], ["5lt Ice cream / Ice cream machine on and working", "g"]]], ["BACK OF HOUSE", "SCULLERY SECTION", "Scullery section", [["Efficiency", "g"], ["Cleanliness of dirties table and surrounding work area", "g"], ["Correct dirties table systems in place (glasses in crate, plates neat, etc.)", "g"], ["Dishwashing machine regularly cleaned", "g"], ["Dustbins cleanliness (regularly cleaned)", "g"], ["Recycling system in place", "a"]]]];
+  const SCFG = {
+    SECS: SVC_RAW.map((r, si) => ({ id: "s" + si, area: r[0], title: r[1], label: r[2], items: r[3].map((it, ii) => ({ id: "s" + si + "i" + ii, text: it[0], t: it[1], sg: it[2] || "" })) })),
+    AREAS: ["FRONT OF HOUSE", "BACK OF HOUSE"],
+    DETAILS: [["name", "Restaurant name & location"], ["owner", "Restaurant owner"], ["team", "Management team"], ["when", "Date & time"], ["last", "Last grading"], ["this", "This grading"]],
+    DETAIL_HINT: {},
+    AUTO_C: ["Poor hygiene standards", "Non use of licensed/recommended products", "Off (unservable) diversified or unavailable products", "Non-conformance to operational requirements", "Non rectification of previous/outstanding points", "Altering/non conformance to franchise recipes"],
+    NONCON: ["1. HYGIENE STANDARDS", "2. NON-USE OF LICENCED / RECOMMENDED PRODUCTS", "3. OFF (UNSERVABLE) DIVERSIFIED OR UNAVAILABLE PRODUCTS", "4. NON-CONFORMANCE TO OPERATIONAL REQUIREMENTS", "5. NON-RECTIFICATION OF PREVIOUS / OUTSTANDING POINTS", "6. ALTERING / NON-CONFORMANCE TO FRANCHISE RECIPES"],
+    KEY: "jb-service-checklist-v1",
+    DEFAULTS: { "d:report": "service" },
+    PROFILE_F: ["name", "owner", "team", "last"],
+    PKEY: "jb-service-store-profiles-v1",
+    DKEY: "jb-service-draft-v1-",
+    BKEY: "jb-service-last-backup-v1",
+    CKEY: "jb-service-collapsed-v1",
+    XKEY: "jb-service-dirty-v1",
+    DB_NAME: "jb-service-photos-v1",
+    ADB_NAME: "jb-service-autobackups-v1"
+  };
+  function applyReport(r) {
+    REPORT = r === "service" ? "service" : "qhrm";
+    IS_SVC = REPORT === "service";
+    const c = IS_SVC ? SCFG : QCFG;
+    SECS = c.SECS;
+    AREAS = c.AREAS;
+    DETAILS = c.DETAILS;
+    DETAIL_HINT = c.DETAIL_HINT;
+    AUTO_C = c.AUTO_C;
+    NONCON = c.NONCON;
+    KEY = c.KEY;
+    DEFAULTS = c.DEFAULTS;
+    PROFILE_F = c.PROFILE_F;
+    PKEY = c.PKEY;
+    DKEY = c.DKEY;
+    BKEY = c.BKEY;
+    CKEY = c.CKEY;
+    XKEY = c.XKEY;
+    DB_NAME = c.DB_NAME;
+    ADB_NAME = c.ADB_NAME;
+    TOTAL = SECS.reduce((n, s) => n + s.items.length, 0);
+    WITEMS = SECS.reduce((a, s) => a.concat(s.items.filter((it) => it.t === "w")), []);
+    FPRE = IS_SVC ? "Service" : "QHRM";
+    SNCAP = IS_SVC ? "Suggestion" : "Additional comments";
+    RTAG = IS_SVC ? { report: "service" } : {};
+    KEYLABEL = {};
+    KEYORDER = [];
+    SECS.forEach((s) => {
+      s.items.forEach((it) => {
+        KEYLABEL[it.id] = s.title + " - " + it.text;
+        KEYORDER.push(it.id);
+      });
+      KEYLABEL["sec:" + s.id] = s.title + " - " + SNCAP.toLowerCase();
+      KEYORDER.push("sec:" + s.id);
+    });
+  }
+  function urlReport() {
+    try {
+      return new URLSearchParams(window.location.search).get("report") === "service" ? "service" : "qhrm";
+    } catch (e) {
+      return "qhrm";
+    }
+  }
+  function qsFor(st) {
+    return IS_SVC ? "?report=service" + (st ? "&store=" + st : "") : st ? "?store=" + st : window.location.pathname;
+  }
   function openDb() {
     return new Promise((resolve, reject) => {
       try {
@@ -406,12 +482,14 @@
     };
     const used = {};
     const H = [];
-    H.push('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QHRM findings - ' + esc(v["d:name"] || "") + "</title><style>" + REPORT_CSS + "</style></head><body>");
-    H.push('<h1>QHRM Inspection - Findings report</h1><table class="kv">');
+    H.push('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + FPRE + " findings - " + esc(v["d:name"] || "") + "</title><style>" + REPORT_CSS + "</style></head><body>");
+    H.push("<h1>" + (IS_SVC ? "Service (Operations) report" : "QHRM Inspection") + ' - Findings report</h1><table class="kv">');
     for (const [k, lab] of DETAILS) H.push("<tr><th>" + esc(lab) + "</th><td>" + esc(v["d:" + k] || "") + "</td></tr>");
     H.push("</table>");
-    H.push("<p>Progress: " + st.done + "/" + TOTAL + " &middot; A " + st.A + " &middot; B " + st.B + " &middot; C " + st.C + " &middot; N/A " + st.NA + "<br>Overall grading (inspector): <b>" + esc(v["ov"] || "-") + "</b></p>");
-    if (v["ovn"]) H.push('<p class="c">' + esc(v["ovn"]) + "</p>");
+    H.push("<p>Progress: " + st.done + "/" + TOTAL + " &middot; A " + st.A + " &middot; B " + st.B + " &middot; C " + st.C + " &middot; N/A " + st.NA + (IS_SVC ? "<br>Front of house overall grading: <b>" + esc(v["ov"] || "-") + "</b> &middot; Head office interaction report from customer: <b>" + esc(v["ho:g"] || "-") + "</b><br>Back of house overall grading: <b>" + esc(v["ovb"] || "-") + "</b>" : "<br>Overall grading (inspector): <b>" + esc(v["ov"] || "-") + "</b>") + "</p>");
+    if (IS_SVC && v["ho:c"]) H.push('<p class="c"><b>Head office interaction report from customer:</b> ' + esc(v["ho:c"]) + "</p>");
+    if (v["ovn"]) H.push('<p class="c">' + (IS_SVC ? "<b>Other comments (front of house):</b> " : "") + esc(v["ovn"]) + "</p>");
+    if (IS_SVC && v["ovbn"]) H.push('<p class="c"><b>Additional comments (back of house):</b> ' + esc(v["ovbn"]) + "</p>");
     H.push("<h2>Findings (B &amp; C)</h2>");
     let any = false;
     for (const s of SECS) {
@@ -430,7 +508,7 @@
       }
       if (sn || sp) {
         used[sk] = true;
-        H.push('<div class="f"><b>Additional comments</b>' + (sn ? '<div class="c">' + esc(sn) + "</div>" : "") + imgs(sk) + "</div>");
+        H.push('<div class="f"><b>' + SNCAP + "</b>" + (sn ? '<div class="c">' + esc(sn) + "</div>" : "") + imgs(sk) + "</div>");
       }
     }
     if (!any) H.push("<p>No B or C grades recorded.</p>");
@@ -464,11 +542,19 @@
   }
   function buildFindings(v, pc = {}) {
     const all = stats(SECS.reduce((a, s) => a.concat(s.items), []), v);
-    const L = ["QHRM INSPECTION - FINDINGS (B / C)"];
+    const L = [IS_SVC ? "SERVICE (OPERATIONS) REPORT - FINDINGS (B / C)" : "QHRM INSPECTION - FINDINGS (B / C)"];
     for (const [k, lab] of DETAILS) L.push(lab + ": " + (v["d:" + k] || ""));
     L.push("Progress: " + all.done + "/" + TOTAL + " | A " + all.A + " | B " + all.B + " | C " + all.C + " | N/A " + all.NA);
-    L.push("Overall grading (inspector): " + (v["ov"] || "-"));
-    if (v["ovn"]) L.push("Comments on operational standards: " + v["ovn"]);
+    if (IS_SVC) {
+      L.push("Front of house overall grading: " + (v["ov"] || "-"));
+      L.push("Head office interaction report from customer: " + (v["ho:g"] || "-") + (v["ho:c"] ? " - " + v["ho:c"] : ""));
+      if (v["ovn"]) L.push("Other comments (front of house): " + v["ovn"]);
+      L.push("Back of house overall grading: " + (v["ovb"] || "-"));
+      if (v["ovbn"]) L.push("Additional comments (back of house): " + v["ovbn"]);
+    } else {
+      L.push("Overall grading (inspector): " + (v["ov"] || "-"));
+      if (v["ovn"]) L.push("Comments on operational standards: " + v["ovn"]);
+    }
     for (const s of SECS) {
       const f = s.items.filter((it) => v[it.id + ":g"] === "B" || v[it.id + ":g"] === "C");
       const sg = v["sg:" + s.id];
@@ -482,7 +568,7 @@
         L.push("[" + v[it.id + ":g"] + "] " + it.text + extra + (cmR(v, it.id) ? " - " + cmR(v, it.id) : ""));
       }
       const spc = pc["sec:" + s.id] || 0;
-      if (sn || spc) L.push("Additional comments: " + (sn || "") + (spc ? " [" + spc + " photo" + (spc > 1 ? "s" : "") + "]" : ""));
+      if (sn || spc) L.push(SNCAP + ": " + (sn || "") + (spc ? " [" + spc + " photo" + (spc > 1 ? "s" : "") + "]" : ""));
     }
     const wsecs = SECS.filter((s) => s.items.some((it) => it.t === "w" && (v[it.id + ":w1"] || v[it.id + ":w2"] || v[it.id + ":w3"] || v[it.id + ":c"] || pc[it.id])));
     if (wsecs.length) {
@@ -512,7 +598,7 @@
     const L = [["Area", "Section", "Subgroup", "Item", "Type", "Grade", "Spec weight", "Weight 1", "Weight 2", "Weight 3", "Average weight (g)", "Count", "Par lev", "Top-up", "Comment", "Photos"].map(q).join(",")];
     const row = (a, b, c, d, ty, g, cm, ph) => [a, b, c, d, ty, g, "", "", "", "", "", "", "", "", cm, ph].map(q).join(",");
     for (const [k, lab] of DETAILS) L.push(row("STORE DETAILS", "", "", lab, "detail", "", v["d:" + k] || "", ""));
-    const TY = { g: "A/B/C", w: "3 portion weights (no grade)", c: "count/par/top-up", n: "no boxes on paper" };
+    const TY = { a: "A/C", g: "A/B/C", w: "3 portion weights (no grade)", c: "count/par/top-up", n: "no boxes on paper" };
     for (const s of SECS) {
       for (const it of s.items) {
         const isW = it.t === "w";
@@ -520,14 +606,19 @@
       }
       L.push(row(s.area, s.title, "", "SECTION GRADE", "section", v["sg:" + s.id] || "", v["sn:" + s.id] || "", String(pc["sec:" + s.id] || 0)));
     }
-    L.push(row("OVERALL", "", "", "OVERALL GRADING: Store Operational Standards", "overall", v["ov"] || "", v["ovn"] || "", ""));
+    if (IS_SVC) {
+      L.push(row("FRONT OF HOUSE", "", "", "Head office interaction report from customer", "section", v["ho:g"] || "", v["ho:c"] || "", ""));
+      L.push(row("OVERALL", "FRONT OF HOUSE", "", "OVERALL GRADING: Store Operational Standards", "overall", v["ov"] || "", v["ovn"] || "", ""));
+      L.push(row("OVERALL", "BACK OF HOUSE", "", "OVERALL GRADING: Store Operational Standards", "overall", v["ovb"] || "", v["ovbn"] || "", ""));
+    } else
+      L.push(row("OVERALL", "", "", "OVERALL GRADING: Store Operational Standards", "overall", v["ov"] || "", v["ovn"] || "", ""));
     NONCON.forEach((n, i) => L.push(row("NON-CONFORMANCE", "", "", n, "non-conformance", v["nc" + i + ":g"] || "", v["nc" + i + ":c"] || "", "")));
     for (const [k, lab] of SIGN) L.push(row("SIGN-OFF", "", "", lab, "detail", "", v["x:" + k] || "", ""));
     return L.join("\r\n");
   }
   function GradeRow(props) {
     const th = useGrokTheme();
-    const opts = props.na ? ["A", "B", "C", "NA"] : ["A", "B", "C"];
+    const opts = (props.na ? ["A", "B", "C", "NA"] : ["A", "B", "C"]).filter((g) => !props.ac || g !== "B");
     return /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, opts.map((g) => {
       const sel = props.value === g;
       const bg = g === "A" ? th.fill.successSubtle : g === "B" ? th.fill.warningSubtle : g === "C" ? th.fill.dangerSubtle : th.fill.secondary;
@@ -580,7 +671,7 @@
     const seg = (n, c) => /* @__PURE__ */ h("div", { style: { width: n / t * 100 + "%", background: c } });
     return /* @__PURE__ */ h("div", { style: { display: "flex", height: 6, borderRadius: 3, overflow: "hidden", background: th.fill.secondary, marginTop: 6 } }, seg(props.s.A, th.text.success), seg(props.s.B, th.text.warning), seg(props.s.C, th.text.danger), seg(props.s.done - props.s.A - props.s.B - props.s.C, th.dataviz.other));
   }
-  function App() {
+  function App(props) {
     const th = useGrokTheme();
     const init = useMemo(() => loadInitial(), []);
     const [vals, setVals] = useState(init.vals);
@@ -962,6 +1053,12 @@
       try {
         const o = JSON.parse(txt);
         if (!o || typeof o !== "object" || Array.isArray(o)) throw new Error("bad");
+        const ov0 = o["v"] === 2 && o["vals"] && typeof o["vals"] === "object" ? o["vals"] : o;
+        const isSvcB = o["report"] === "service" || !!ov0 && ov0["d:report"] === "service";
+        if (isSvcB !== IS_SVC) {
+          setMsg(IS_SVC ? "That is a QHRM backup, not a Service report backup. Pick QHRM report on the start screen to restore it there." : "That is a Service report backup, not a QHRM backup. Pick Service report on the start screen to restore it there.");
+          return;
+        }
         if (o["v"] === 2 && o["vals"] && typeof o["vals"] === "object") {
           const bv = migrate(o["vals"]);
           const target = backupTarget(bv, o["store"]);
@@ -1168,8 +1265,8 @@
         return false;
       }
     };
-    const stamp = "QHRM_" + storeFile(vals) + "_" + isoDay(vals);
-    const backupText = () => JSON.stringify({ v: 2, store: cur, storeName: curS ? curS.label : vals["d:name"] || "", vals, photos });
+    const stamp = FPRE + "_" + storeFile(vals) + "_" + isoDay(vals);
+    const backupText = () => JSON.stringify({ ...RTAG, v: 2, store: cur, storeName: curS ? curS.label : vals["d:name"] || "", vals, photos });
     const markBackedUp = () => {
       const t = Date.now();
       saveLastBk({ ...lastBk, [cur || "_"]: t });
@@ -1245,7 +1342,7 @@
       const sig = hashStr(JSON.stringify(v) + "|" + ps.map((p) => p.id).join(","));
       if (lastSigRef.current[sk] === sig) return false;
       const s = storeOf(st);
-      const text = JSON.stringify({ v: 2, store: st, storeName: s ? s.label : v["d:name"] || "", vals: v, photos: ps });
+      const text = JSON.stringify({ ...RTAG, v: 2, store: st, storeName: s ? s.label : v["d:name"] || "", vals: v, photos: ps });
       const ts = Date.now();
       const meta = { id: sk + "|" + ts + "|" + newId(), st: sk, ts, why, n: entryCount(v), p: ps.length, sig };
       const put = () => aTx(db, "readwrite", (m, s2) => {
@@ -1328,7 +1425,7 @@
         }
         const s = storeOf(sn.st === "_" ? "" : sn.st);
         const d = new Date(sn.ts);
-        download("QHRM_" + (s ? s.file : "Store") + "_" + d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate()) + "_" + two(d.getHours()) + two(d.getMinutes()) + "_autobackup.json", txt, "application/json", false);
+        download(FPRE + "_" + (s ? s.file : "Store") + "_" + d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate()) + "_" + two(d.getHours()) + two(d.getMinutes()) + "_autobackup.json", txt, "application/json", false);
       } catch (e) {
         setSnapMsg("That auto backup could not be read.");
       }
@@ -1397,7 +1494,7 @@
     const muted = { fontSize: 13, color: th.text.secondary, fontFamily: th.font.family };
     const linkBtn = { background: "transparent", border: "none", padding: "8px 0", color: th.text.accent, fontSize: 14, fontFamily: th.font.family, cursor: "pointer" };
     const dangerBtn = { minHeight: 48, padding: "0 16px", borderRadius: th.radius.md, border: "2px solid " + th.text.danger, background: th.fill.dangerSubtle, color: th.text.danger, fontFamily: th.font.family, fontSize: 15, fontWeight: th.weight.semibold, cursor: "pointer", touchAction: "manipulation" };
-    const KEEP_D = ["store", "name", "addr", "owner", "att", "dear", "team", "last", "sig", "org"];
+    const KEEP_D = ["report", "store", "name", "addr", "owner", "att", "dear", "team", "last", "sig", "org"];
     const keepOnly = (v) => {
       const o = {};
       for (const f of KEEP_D) if (v["d:" + f]) o["d:" + f] = v["d:" + f];
@@ -1428,7 +1525,7 @@
       const d = delInfo(st);
       const s = storeOf(st);
       const ps = allPhotos.filter((x) => (x.st || "") === st);
-      download("QHRM_" + (s ? s.file : "Store") + "_" + d.date + "_backup.json", JSON.stringify({ v: 2, store: st, storeName: s ? s.label : d.v["d:name"] || "", vals: d.v, photos: ps }), "application/json", false);
+      download(FPRE + "_" + (s ? s.file : "Store") + "_" + d.date + "_backup.json", JSON.stringify({ ...RTAG, v: 2, store: st, storeName: s ? s.label : d.v["d:name"] || "", vals: d.v, photos: ps }), "application/json", false);
     };
     const doDelete = async (st) => {
       const d = delInfo(st);
@@ -1509,7 +1606,7 @@
         const file = new File([buildReport(vals, byKey)], name, { type: "text/html" });
         const nav = navigator;
         if (typeof nav.share === "function" && nav.canShare && nav.canShare({ files: [file] })) {
-          await nav.share({ files: [file], title: "QHRM findings" });
+          await nav.share({ files: [file], title: FPRE + " findings" });
           setMsg("Report handed to your phone's share sheet.");
           return;
         }
@@ -1551,6 +1648,14 @@
         setView(null);
       } }), /* @__PURE__ */ h("span", { style: { ...muted, fontSize: 12 } }, vi + 1, " / ", ps.length, " · ", new Date(cur2.ts).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })))) : null);
     };
+    const gTone = (g) => g ? { text: g, tone: g === "A" ? "success" : g === "B" ? "warning" : "danger" } : "-";
+    const svcTable = (area, extra) => /* @__PURE__ */ h(Table, { columns: ["Section", "Done", "A / B / C", "Grade"], rows: SECS.filter((s) => s.area === area).map((s) => {
+      const i = SECS.indexOf(s);
+      return [s.label, secStats[i].done + "/" + secStats[i].total, secStats[i].A + " / " + secStats[i].B + " / " + secStats[i].C, gTone(vals["sg:" + s.id] || "")];
+    }).concat(extra) });
+    const partHead = { fontSize: 12, letterSpacing: "0.06em", color: th.text.tertiary, fontWeight: th.weight.semibold, margin: "6px 0 2px", fontFamily: th.font.family };
+    const gHead = { fontSize: 15, fontWeight: th.weight.semibold, color: th.text.primary, margin: "18px 0 6px" };
+    const svcGrad = () => /* @__PURE__ */ h(Section, { heading: "Gradings and sign-off", id: "gradings" }, /* @__PURE__ */ h("div", { "data-t": "svc-grad-foh", style: partHead }, "FRONT OF HOUSE"), svcTable("FRONT OF HOUSE", [["Head office interaction report from customer", "", "", gTone(vals["ho:g"] || "")]]), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { "data-t": "svc-ho", style: { ...gHead, marginTop: 4 } }, "Head office interaction report from customer"), /* @__PURE__ */ h(GradeRow, { value: vals["ho:g"] || "", na: false, onPick: (x) => set("ho:g", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["ho:c"] || "", onChange: (x) => set("ho:c", x), placeholder: "Customer feedback reported to head office" }), /* @__PURE__ */ h("div", { style: gHead }, "Overall grading: Store Operational Standards (front of house)"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 8 } }, "A = Excellent, B = Needs improvement, C = Unacceptable"), /* @__PURE__ */ h(GradeRow, { value: vals["ov"] || "", na: false, onPick: (x) => set("ov", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["ovn"] || "", onChange: (x) => set("ovn", x), placeholder: "Other comments" })), /* @__PURE__ */ h("div", { "data-t": "svc-grad-boh", style: { ...partHead, marginTop: 22 } }, "BACK OF HOUSE"), svcTable("BACK OF HOUSE", []), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { ...gHead, marginTop: 4 } }, "Overall grading: Store Operational Standards (back of house)"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 8 } }, "A = Excellent, B = Needs improvement, C = Unacceptable"), /* @__PURE__ */ h(GradeRow, { value: vals["ovb"] || "", na: false, onPick: (x) => set("ovb", x) }), /* @__PURE__ */ h("div", { style: gHead }, "Comments on operational standards and non-conformance"), NONCON.map((n, i) => /* @__PURE__ */ h("div", { key: n, style: { padding: "14px 0", borderTop: "1px solid " + th.border.subtle } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, color: th.text.primary, marginBottom: 8 } }, n), /* @__PURE__ */ h(GradeRow, { value: vals["nc" + i + ":g"] || "", na: false, onPick: (x) => set("nc" + i + ":g", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["nc" + i + ":c"] || "", onChange: (x) => set("nc" + i + ":c", x), placeholder: "Comment" }))), /* @__PURE__ */ h("div", { style: gHead }, "Additional comments"), /* @__PURE__ */ h(NoteBox, { value: vals["ovbn"] || "", onChange: (x) => set("ovbn", x), placeholder: "Additional comments" })), /* @__PURE__ */ h("div", { style: { ...partHead, marginTop: 22 } }, "SIGN-OFF"), SIGN.map(([k, lab]) => /* @__PURE__ */ h(Input, { key: k, label: lab, value: vals["x:" + k] || "", onChange: (x) => set("x:" + k, x) })));
     const switchRef = useRef(doSwitch);
     switchRef.current = doSwitch;
     const saveNow = () => {
@@ -1585,7 +1690,7 @@
       goingRef.current = "";
       if (!home && cur && urlStore() !== cur) {
         try {
-          window.history.replaceState(window.history.state, "", "?store=" + cur);
+          window.history.replaceState(window.history.state, "", qsFor(cur));
         } catch (e) {
         }
       }
@@ -1594,6 +1699,13 @@
       const s0 = urlStore();
       if (s0) goTo(s0);
       const onPop = () => {
+        if (urlReport() !== REPORT) {
+          saveNowRef.current();
+          snapRef.current("on leave");
+          props.onReport(urlReport());
+          window.scrollTo(0, 0);
+          return;
+        }
         const s = urlStore();
         if (s) {
           goTo(s);
@@ -1611,7 +1723,7 @@
     const openStore = (id) => {
       goTo(id);
       try {
-        window.history.pushState({ qhrm: "store" }, "", "?store=" + id);
+        window.history.pushState({ qhrm: "store" }, "", qsFor(id));
       } catch (e) {
       }
       setHome(false);
@@ -1626,11 +1738,20 @@
         return;
       }
       try {
-        window.history.replaceState(null, "", window.location.pathname);
+        window.history.replaceState(null, "", qsFor(""));
       } catch (e) {
       }
       setHome(true);
       window.scrollTo(0, 0);
+    };
+    const pickReport = (x) => {
+      if (x === REPORT) return;
+      try {
+        window.history.replaceState(null, "", x === "service" ? "?report=service" : window.location.pathname);
+      } catch (e) {
+      }
+      window.scrollTo(0, 0);
+      props.onReport(x);
     };
     if (home) {
       const allItems = SECS.reduce((a, s) => a.concat(s.items), []);
@@ -1644,9 +1765,9 @@
         const s = v ? stats(allItems, v) : null;
         return s && s.done > 0 ? s.done + " / " + TOTAL + " done" + (s.C ? " · C " + s.C : "") : "Not started";
       };
-      return /* @__PURE__ */ h("main", { class: "page home", "data-t": "home" }, /* @__PURE__ */ h("div", { class: "hlogo" }, /* @__PURE__ */ h("img", { src: "jb-logo-2026.svg", alt: "Jackson & Black", width: "96", height: "96" })), /* @__PURE__ */ h("h1", { class: "htitle" }, "JACKSON AND BLACK QHRM"), /* @__PURE__ */ h("div", { class: "hlist" }, STORES.map((s) => /* @__PURE__ */ h("button", { type: "button", class: "hbtn" + (s.id === cur ? " cur" : ""), "data-t": "home-store", "data-store": s.id, onClick: () => openStore(s.id) }, /* @__PURE__ */ h("span", { class: "hname" }, "Jackson and Black " + s.short), /* @__PURE__ */ h("span", { class: "hsub", "data-t": "home-sub" }, sub(s.id))))), /* @__PURE__ */ h("div", { class: "hphoto", "data-t": "home-photo" }, /* @__PURE__ */ h("img", { src: "start-photo.webp", alt: "Jackson and Black", width: "900", height: "900" })));
+      return /* @__PURE__ */ h("main", { class: "page home", "data-t": "home" }, /* @__PURE__ */ h("div", { class: "hlogo" }, /* @__PURE__ */ h("img", { src: "jb-logo-2026.svg", alt: "Jackson & Black", width: "96", height: "96" })), /* @__PURE__ */ h("h1", { class: "htitle" }, IS_SVC ? "JACKSON AND BLACK SERVICE REPORT" : "JACKSON AND BLACK QHRM"), /* @__PURE__ */ h("div", { class: "hlist" }, /* @__PURE__ */ h("div", { class: "hrep", role: "group", "aria-label": "Report", "data-t": "home-report" }, /* @__PURE__ */ h("button", { type: "button", class: IS_SVC ? "" : "on", "aria-pressed": !IS_SVC, "data-report": "qhrm", onClick: () => pickReport("qhrm") }, "QHRM report"), /* @__PURE__ */ h("button", { type: "button", class: IS_SVC ? "on" : "", "aria-pressed": IS_SVC, "data-report": "service", onClick: () => pickReport("service") }, "Service report")), STORES.map((s) => /* @__PURE__ */ h("button", { type: "button", class: "hbtn" + (s.id === cur ? " cur" : ""), "data-t": "home-store", "data-store": s.id, onClick: () => openStore(s.id) }, /* @__PURE__ */ h("span", { class: "hname" }, "Jackson and Black " + s.short), /* @__PURE__ */ h("span", { class: "hsub", "data-t": "home-sub" }, sub(s.id))))), /* @__PURE__ */ h("div", { class: "hphoto", "data-t": "home-photo" }, /* @__PURE__ */ h("img", { src: "start-photo.webp", alt: "Jackson and Black", width: "900", height: "900" })));
     }
-    return /* @__PURE__ */ h(Page, { title: "JACKSON AND BLACK QHRM", width: "column" }, upd ? /* @__PURE__ */ h("div", { class: "note", role: "status" }, "A new version of the app is ready. Your entries are saved. ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => window.location.reload() }, "Reload")) : null, inst ? /* @__PURE__ */ h("div", { class: "note" }, "Install the checklist on this phone for offline use and safer storage. ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => {
+    return /* @__PURE__ */ h(Page, { title: IS_SVC ? "JACKSON AND BLACK SERVICE REPORT" : "JACKSON AND BLACK QHRM", width: "column" }, upd ? /* @__PURE__ */ h("div", { class: "note", role: "status" }, "A new version of the app is ready. Your entries are saved. ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => window.location.reload() }, "Reload")) : null, inst ? /* @__PURE__ */ h("div", { class: "note" }, "Install the checklist on this phone for offline use and safer storage. ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => {
       inst.prompt();
       inst.userChoice.then(() => {
         setInst(null);
@@ -1658,7 +1779,7 @@
       onFiles(e);
     }, style: { display: "none" } }), /* @__PURE__ */ h("input", { ref: galRef, type: "file", accept: "image/*", multiple: true, onChange: (e) => {
       onFiles(e);
-    }, style: { display: "none" } }), /* @__PURE__ */ h("input", { ref: fileRef, type: "file", accept: ".json,application/json,text/plain", onChange: (e) => onRestoreFile(e), style: { display: "none" } }), /* @__PURE__ */ h(TableOfContents, { items: [{ label: "Store details", id: "details" }, { label: "Automatic C grading", id: "autoc" }, { label: "Checklist", id: "checklist" }, { label: "Findings (B & C)", id: "findings" }, { label: "Gradings and sign-off", id: "gradings" }, { label: "Letter date", id: "letterdate" }, { label: "Export and backup", id: "export" }, { label: "How grading works", id: "notes" }] }), /* @__PURE__ */ h(Section, { heading: "Store details", id: "details" }, /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { "data-t": "details-store", style: { fontSize: 16, fontWeight: th.weight.semibold, color: curS ? th.text.primary : th.text.danger, marginBottom: 2 } }, curS ? curS.label : "No store picked"), smsg ? /* @__PURE__ */ h("div", { style: { fontSize: 13, color: th.text.accent, marginTop: 6 } }, smsg) : null), DETAILS.filter(([k]) => k !== "ldate").map(([k, lab]) => k === "addr" ? /* @__PURE__ */ h("div", { key: k, style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14 } }, lab), /* @__PURE__ */ h(NoteBox, { value: vals["d:" + k] || "", onChange: (x) => set("d:" + k, x), placeholder: DETAIL_HINT[k] || "" })) : /* @__PURE__ */ h(Input, { key: k, label: lab, value: vals["d:" + k] || "", onChange: (x) => set("d:" + k, x), placeholder: DETAIL_HINT[k] })), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, curS ? /* @__PURE__ */ h(Button, { label: rsArm ? "Tap again to reset " + curS.short + " details" : "Reset store details to defaults", onClick: () => resetStore() }) : null)), /* @__PURE__ */ h(Section, { heading: "Automatic C grading", id: "autoc", collapsible: true, defaultOpen: false }, /* @__PURE__ */ h(Text, null, "Major non-conformance to required operational standards of Bossa may result in an automatic C grading for the entire section or the overall report, with specific reference to:"), /* @__PURE__ */ h(NumberedList, { items: AUTO_C })), /* @__PURE__ */ h(Section, { heading: "Checklist", id: "checklist" }, delMsg ? /* @__PURE__ */ h("div", { class: "note", role: "status", "data-t": "del-msg", style: { borderColor: th.text.danger } }, delMsg, " ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => setDelMsg("") }, "OK")) : null, /* @__PURE__ */ h(Segmented, { options: [{ value: "all", label: "All" }, { value: "todo", label: "To do", count: TOTAL - all.done }, { value: "bc", label: "B & C", count: all.B + all.C }], value: filter, onChange: (x) => setFilter(x) }), /* @__PURE__ */ h(Input, { value: query, onChange: (x) => setQuery(x), placeholder: "Search items or sections" }), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Collapse all", onClick: () => openAll(false) }), /* @__PURE__ */ h(Button, { label: "Expand all", onClick: () => openAll(true) })), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, AREAS.map((area) => {
+    }, style: { display: "none" } }), /* @__PURE__ */ h("input", { ref: fileRef, type: "file", accept: ".json,application/json,text/plain", onChange: (e) => onRestoreFile(e), style: { display: "none" } }), /* @__PURE__ */ h(TableOfContents, { items: [{ label: "Store details", id: "details" }, { label: "Automatic C grading", id: "autoc" }, { label: "Checklist", id: "checklist" }, { label: "Findings (B & C)", id: "findings" }, { label: "Gradings and sign-off", id: "gradings" }, { label: "Letter date", id: "letterdate" }, { label: "Export and backup", id: "export" }, { label: "How grading works", id: "notes" }].filter((x) => !IS_SVC || x.id !== "letterdate") }), /* @__PURE__ */ h(Section, { heading: "Store details", id: "details" }, /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { "data-t": "details-store", style: { fontSize: 16, fontWeight: th.weight.semibold, color: curS ? th.text.primary : th.text.danger, marginBottom: 2 } }, curS ? curS.label : "No store picked"), smsg ? /* @__PURE__ */ h("div", { style: { fontSize: 13, color: th.text.accent, marginTop: 6 } }, smsg) : null), DETAILS.filter(([k]) => k !== "ldate").map(([k, lab]) => k === "addr" ? /* @__PURE__ */ h("div", { key: k, style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14 } }, lab), /* @__PURE__ */ h(NoteBox, { value: vals["d:" + k] || "", onChange: (x) => set("d:" + k, x), placeholder: DETAIL_HINT[k] || "" })) : /* @__PURE__ */ h(Input, { key: k, label: lab, value: vals["d:" + k] || "", onChange: (x) => set("d:" + k, x), placeholder: DETAIL_HINT[k] })), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, curS ? /* @__PURE__ */ h(Button, { label: rsArm ? "Tap again to reset " + curS.short + " details" : "Reset store details to defaults", onClick: () => resetStore() }) : null)), /* @__PURE__ */ h(Section, { heading: "Automatic C grading", id: "autoc", collapsible: true, defaultOpen: false }, /* @__PURE__ */ h(Text, null, "Major non-conformance to required operational standards of Bossa may result in an automatic C grading for the entire section or the overall report, with specific reference to:"), /* @__PURE__ */ h(NumberedList, { items: AUTO_C })), /* @__PURE__ */ h(Section, { heading: "Checklist", id: "checklist" }, delMsg ? /* @__PURE__ */ h("div", { class: "note", role: "status", "data-t": "del-msg", style: { borderColor: th.text.danger } }, delMsg, " ", /* @__PURE__ */ h("button", { type: "button", class: "btn", onClick: () => setDelMsg("") }, "OK")) : null, /* @__PURE__ */ h(Segmented, { options: [{ value: "all", label: "All" }, { value: "todo", label: "To do", count: TOTAL - all.done }, { value: "bc", label: "B & C", count: all.B + all.C }], value: filter, onChange: (x) => setFilter(x) }), /* @__PURE__ */ h(Input, { value: query, onChange: (x) => setQuery(x), placeholder: "Search items or sections" }), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Collapse all", onClick: () => openAll(false) }), /* @__PURE__ */ h(Button, { label: "Expand all", onClick: () => openAll(true) })), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, AREAS.map((area) => {
       const secs = SECS.filter((s) => s.area === area);
       return /* @__PURE__ */ h("div", { key: area, style: { marginTop: 18 } }, /* @__PURE__ */ h("div", { style: { fontSize: 12, letterSpacing: "0.06em", color: th.text.tertiary, fontWeight: th.weight.semibold, marginBottom: 6 } }, area), secs.map((s) => {
         const si = SECS.indexOf(s);
@@ -1676,17 +1797,17 @@
           const showNote = !!c || !!notes[it.id];
           const header = it.sg && it.sg !== lastSg ? it.sg : "";
           lastSg = it.sg;
-          return /* @__PURE__ */ h("div", { key: it.id, id: "it-" + it.id }, header ? /* @__PURE__ */ h("div", { style: { fontSize: 13, fontWeight: th.weight.semibold, color: th.text.secondary, padding: "12px 0 2px" } }, header, ":") : null, /* @__PURE__ */ h("div", { style: { padding: "14px 0", borderTop: "1px solid " + th.border.subtle } }, /* @__PURE__ */ h("div", { style: { fontSize: 16, lineHeight: "22px", color: th.text.primary, marginBottom: 10 } }, /* @__PURE__ */ h("span", { style: { color: th.text.tertiary } }, n, ". "), it.text), it.t === "w" ? /* @__PURE__ */ h("div", { style: { marginBottom: 6 } }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginBottom: 6 } }, specOf(it.text) ? "Spec " + specOf(it.text) + " (from the item name)" : "No spec weight on the sheet", " · weigh 3 portions, in grams"), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, [1, 2, 3].map((wi) => /* @__PURE__ */ h(SmallField, { key: wi, label: "Weight " + wi, value: vals[it.id + ":w" + wi] || "", onChange: (x) => set(it.id + ":w" + wi, x), placeholder: "g" }))), /* @__PURE__ */ h("div", { style: { fontSize: 14, color: th.text.primary, marginTop: 8 } }, "Average: ", /* @__PURE__ */ h("b", null, wAvg(vals, it.id) ? wAvg(vals, it.id) + " g" : "–"), specOf(it.text) ? /* @__PURE__ */ h("span", { style: { color: th.text.secondary } }, " · spec ", specOf(it.text)) : null)) : null, it.t === "c" ? /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ h(SmallField, { label: "Count", value: vals[it.id + ":n"] || "", onChange: (x) => set(it.id + ":n", x) }), /* @__PURE__ */ h(SmallField, { label: "Par lev", value: vals[it.id + ":p"] || "", onChange: (x) => set(it.id + ":p", x) }), /* @__PURE__ */ h(SmallField, { label: "Top-up", value: vals[it.id + ":u"] || "", onChange: (x) => set(it.id + ":u", x) })) : null, it.t === "n" || it.t === "c" ? /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginBottom: 6 } }, it.t === "n" ? "No A/B/C boxes on the paper form for this line; grade optional" : "Grade optional (the paper form has no A/B/C boxes here)") : null, it.t !== "w" ? /* @__PURE__ */ h(GradeRow, { value: g, na: true, onPick: (x) => {
+          return /* @__PURE__ */ h("div", { key: it.id, id: "it-" + it.id }, header ? /* @__PURE__ */ h("div", { style: { fontSize: 13, fontWeight: th.weight.semibold, color: th.text.secondary, padding: "12px 0 2px" } }, header, ":") : null, /* @__PURE__ */ h("div", { style: { padding: "14px 0", borderTop: "1px solid " + th.border.subtle } }, /* @__PURE__ */ h("div", { style: { fontSize: 16, lineHeight: "22px", color: th.text.primary, marginBottom: 10 } }, /* @__PURE__ */ h("span", { style: { color: th.text.tertiary } }, n, ". "), it.text), it.t === "w" ? /* @__PURE__ */ h("div", { style: { marginBottom: 6 } }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginBottom: 6 } }, specOf(it.text) ? "Spec " + specOf(it.text) + " (from the item name)" : "No spec weight on the sheet", " · weigh 3 portions, in grams"), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, [1, 2, 3].map((wi) => /* @__PURE__ */ h(SmallField, { key: wi, label: "Weight " + wi, value: vals[it.id + ":w" + wi] || "", onChange: (x) => set(it.id + ":w" + wi, x), placeholder: "g" }))), /* @__PURE__ */ h("div", { style: { fontSize: 14, color: th.text.primary, marginTop: 8 } }, "Average: ", /* @__PURE__ */ h("b", null, wAvg(vals, it.id) ? wAvg(vals, it.id) + " g" : "–"), specOf(it.text) ? /* @__PURE__ */ h("span", { style: { color: th.text.secondary } }, " · spec ", specOf(it.text)) : null)) : null, it.t === "c" ? /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 } }, /* @__PURE__ */ h(SmallField, { label: "Count", value: vals[it.id + ":n"] || "", onChange: (x) => set(it.id + ":n", x) }), /* @__PURE__ */ h(SmallField, { label: "Par lev", value: vals[it.id + ":p"] || "", onChange: (x) => set(it.id + ":p", x) }), /* @__PURE__ */ h(SmallField, { label: "Top-up", value: vals[it.id + ":u"] || "", onChange: (x) => set(it.id + ":u", x) })) : null, it.t === "n" || it.t === "c" ? /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginBottom: 6 } }, it.t === "n" ? "No A/B/C boxes on the paper form for this line; grade optional" : "Grade optional (the paper form has no A/B/C boxes here)") : null, it.t === "a" ? /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginBottom: 6 } }, "A or C only on the form (no B)") : null, it.t !== "w" ? /* @__PURE__ */ h(GradeRow, { value: g, na: true, ac: it.t === "a", onPick: (x) => {
             set(it.id + ":g", x);
             if (x === "B" || x === "C") setNotes({ ...notes, [it.id]: true });
           } }) : null, showNote ? /* @__PURE__ */ h("div", null, /* @__PURE__ */ h(NoteBox, { value: c, onChange: (x) => set(it.id + ":c", x), placeholder: g === "B" || g === "C" ? "What needs fixing?" : "Comment" }), /* @__PURE__ */ h("button", { type: "button", "aria-pressed": !!vals[it.id + ":r"], onClick: () => set(it.id + ":r", vals[it.id + ":r"] ? "" : "1"), style: { marginTop: 6, minHeight: 36, padding: "0 12px", borderRadius: th.radius.md, cursor: "pointer", fontFamily: th.font.family, fontSize: 14, border: "1px solid " + (vals[it.id + ":r"] ? th.text.danger : th.border.default), background: vals[it.id + ":r"] ? th.fill.dangerSubtle : "transparent", color: vals[it.id + ":r"] ? th.text.danger : th.text.secondary, fontWeight: vals[it.id + ":r"] ? th.weight.semibold : th.weight.medium } }, vals[it.id + ":r"] ? "✓ Repeat finding" : "Mark as repeat")) : /* @__PURE__ */ h("button", { type: "button", style: linkBtn, onClick: () => setNotes({ ...notes, [it.id]: true }) }, "+ Comment"), photoBar(it.id, "list")));
-        }), !filtering ? /* @__PURE__ */ h("div", { style: { padding: "14px 0 0", borderTop: "1px solid " + th.border.default } }, /* @__PURE__ */ h("div", { style: { fontSize: 14, fontWeight: th.weight.semibold, color: th.text.primary, marginBottom: 8 } }, "Section grade: ", s.title), /* @__PURE__ */ h(GradeRow, { value: sg, na: false, onPick: (x) => set("sg:" + s.id, x) }), /* @__PURE__ */ h(NoteBox, { value: vals["sn:" + s.id] || "", onChange: (x) => set("sn:" + s.id, x), placeholder: "Additional comments" }), photoBar("sec:" + s.id, "list")) : null, /* @__PURE__ */ h("button", { type: "button", "data-t": "collapse-sec", "aria-label": "Collapse section " + s.title, onClick: () => collapseSec(s.id), style: { display: "block", width: "100%", minHeight: 52, marginTop: 14, borderRadius: th.radius.md, border: "1px solid " + th.border.default, background: th.bg.subtle, color: th.text.primary, fontFamily: th.font.family, fontSize: 16, fontWeight: th.weight.semibold, cursor: "pointer", touchAction: "manipulation" } }, "Collapse section ▲")) : null);
+        }), !filtering ? /* @__PURE__ */ h("div", { style: { padding: "14px 0 0", borderTop: "1px solid " + th.border.default } }, /* @__PURE__ */ h("div", { style: { fontSize: 14, fontWeight: th.weight.semibold, color: th.text.primary, marginBottom: 8 } }, "Section grade: ", s.title), /* @__PURE__ */ h(GradeRow, { value: sg, na: false, onPick: (x) => set("sg:" + s.id, x) }), /* @__PURE__ */ h(NoteBox, { value: vals["sn:" + s.id] || "", onChange: (x) => set("sn:" + s.id, x), placeholder: SNCAP }), photoBar("sec:" + s.id, "list")) : null, /* @__PURE__ */ h("button", { type: "button", "data-t": "collapse-sec", "aria-label": "Collapse section " + s.title, onClick: () => collapseSec(s.id), style: { display: "block", width: "100%", minHeight: 52, marginTop: 14, borderRadius: th.radius.md, border: "1px solid " + th.border.default, background: th.bg.subtle, color: th.text.primary, fontFamily: th.font.family, fontSize: 16, fontWeight: th.weight.semibold, cursor: "pointer", touchAction: "manipulation" } }, "Collapse section ▲")) : null);
       }));
     }))), /* @__PURE__ */ h(Section, { heading: "Findings (B & C)", id: "findings" }, findings.length || secFind.length ? /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 6 } }, findings.length, " finding", findings.length === 1 ? "" : "s", " · ", findings.reduce((n, f) => n + (pc[f.it.id] || 0), 0) + secFind.reduce((n, s) => n + (pc["sec:" + s.id] || 0), 0), " photo(s). Tap a thumbnail to enlarge."), findings.map((f) => {
       const g = vals[f.it.id + ":g"];
       const cm = cmR(vals, f.it.id);
       return /* @__PURE__ */ h("div", { key: f.it.id, style: { display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 0", borderTop: "1px solid " + th.border.subtle } }, /* @__PURE__ */ h("span", { style: { flexShrink: 0, minWidth: 28, textAlign: "center", padding: "2px 6px", borderRadius: th.radius.md, fontWeight: th.weight.semibold, fontSize: 14, background: g === "C" ? th.fill.dangerSubtle : th.fill.warningSubtle, color: g === "C" ? th.text.danger : th.text.warning } }, g), /* @__PURE__ */ h("div", { style: { flex: 1, minWidth: 0 } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, lineHeight: "21px", color: th.text.primary } }, f.it.text), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12 } }, f.s.title, pc[f.it.id] ? " · 📷 " + pc[f.it.id] : ""), /* @__PURE__ */ h("button", { type: "button", "data-t": "goto", style: { ...linkBtn, minHeight: 40 }, onClick: () => jumpTo(f.s.id, f.it.id) }, "Go to item in checklist ↑"), /* @__PURE__ */ h("div", { style: { fontSize: 14, marginTop: 4, whiteSpace: "pre-wrap", color: cm ? th.text.secondary : th.text.tertiary } }, cm || "No comment yet"), photoBar(f.it.id, "find")));
-    }), secFind.map((s) => /* @__PURE__ */ h("div", { key: s.id, style: { padding: "12px 0", borderTop: "1px solid " + th.border.subtle } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, color: th.text.primary } }, s.title, ": additional comments"), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12 } }, "Section grade ", vals["sg:" + s.id] || "-", pc["sec:" + s.id] ? " · 📷 " + pc["sec:" + s.id] : ""), vals["sn:" + s.id] ? /* @__PURE__ */ h("div", { style: { fontSize: 14, marginTop: 4, whiteSpace: "pre-wrap", color: th.text.secondary } }, vals["sn:" + s.id]) : null, photoBar("sec:" + s.id, "find")))) : /* @__PURE__ */ h(Text, null, "Items you grade B or C collect here with their comments and photos, as the corrective-action list. Section comments with photos also appear here.")), /* @__PURE__ */ h(Section, { heading: "Gradings and sign-off", id: "gradings" }, /* @__PURE__ */ h(
+    }), secFind.map((s) => /* @__PURE__ */ h("div", { key: s.id, style: { padding: "12px 0", borderTop: "1px solid " + th.border.subtle } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, color: th.text.primary } }, s.title, ": ", SNCAP.toLowerCase()), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12 } }, "Section grade ", vals["sg:" + s.id] || "-", pc["sec:" + s.id] ? " · 📷 " + pc["sec:" + s.id] : ""), vals["sn:" + s.id] ? /* @__PURE__ */ h("div", { style: { fontSize: 14, marginTop: 4, whiteSpace: "pre-wrap", color: th.text.secondary } }, vals["sn:" + s.id]) : null, photoBar("sec:" + s.id, "find")))) : /* @__PURE__ */ h(Text, null, "Items you grade B or C collect here with their comments and photos, as the corrective-action list. Section comments with photos also appear here.")), IS_SVC ? svcGrad() : /* @__PURE__ */ h(Section, { heading: "Gradings and sign-off", id: "gradings" }, /* @__PURE__ */ h(
       Table,
       {
         columns: ["Section", "Done", "A / B / C", "Grade"],
@@ -1695,7 +1816,7 @@
           return [s.label, secStats[i].done + "/" + secStats[i].total, secStats[i].A + " / " + secStats[i].B + " / " + secStats[i].C, g ? { text: g, tone: g === "A" ? "success" : g === "B" ? "warning" : "danger" } : "-"];
         })
       }
-    ), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, fontWeight: th.weight.semibold, color: th.text.primary, margin: "4px 0 4px" } }, "Overall grading: Store Operational Standards"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 8 } }, "A = Excellent, B = Needs improvement, C = Unacceptable"), /* @__PURE__ */ h(GradeRow, { value: vals["ov"] || "", na: false, onPick: (x) => set("ov", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["ovn"] || "", onChange: (x) => set("ovn", x), placeholder: "Comments on operational standards and non-conformance" }), NONCON.map((n, i) => /* @__PURE__ */ h("div", { key: n, style: { padding: "14px 0", borderTop: "1px solid " + th.border.subtle, marginTop: i === 0 ? 14 : 0 } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, color: th.text.primary, marginBottom: 8 } }, n), /* @__PURE__ */ h(GradeRow, { value: vals["nc" + i + ":g"] || "", na: false, onPick: (x) => set("nc" + i + ":g", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["nc" + i + ":c"] || "", onChange: (x) => set("nc" + i + ":c", x), placeholder: "Comment" })))), SIGN.map(([k, lab]) => /* @__PURE__ */ h(Input, { key: k, label: lab, value: vals["x:" + k] || "", onChange: (x) => set("x:" + k, x) }))), /* @__PURE__ */ h(Section, { heading: "Letter date", id: "letterdate" }, /* @__PURE__ */ h(Input, { label: (DETAILS.find(([k]) => k === "ldate") || ["", "Letter date (blank = today)"])[1], value: vals["d:ldate"] || "", onChange: (x) => set("d:ldate", x), placeholder: DETAIL_HINT["ldate"] }), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Set letter date to today", onClick: () => set("d:ldate", (/* @__PURE__ */ new Date()).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })) }))), /* @__PURE__ */ h(Section, { heading: "Export and backup", id: "export" }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, color: th.text.primary, fontWeight: th.weight.semibold } }, "Report with photos"), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Download photo report (.html)", variant: "primary", onClick: () => download(stamp + "_findings.html", buildReport(vals, byKey), "text/html", false) }), /* @__PURE__ */ h(Button, { label: "Share photo report", onClick: () => {
+    ), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, fontWeight: th.weight.semibold, color: th.text.primary, margin: "4px 0 4px" } }, "Overall grading: Store Operational Standards"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 8 } }, "A = Excellent, B = Needs improvement, C = Unacceptable"), /* @__PURE__ */ h(GradeRow, { value: vals["ov"] || "", na: false, onPick: (x) => set("ov", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["ovn"] || "", onChange: (x) => set("ovn", x), placeholder: "Comments on operational standards and non-conformance" }), NONCON.map((n, i) => /* @__PURE__ */ h("div", { key: n, style: { padding: "14px 0", borderTop: "1px solid " + th.border.subtle, marginTop: i === 0 ? 14 : 0 } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, color: th.text.primary, marginBottom: 8 } }, n), /* @__PURE__ */ h(GradeRow, { value: vals["nc" + i + ":g"] || "", na: false, onPick: (x) => set("nc" + i + ":g", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["nc" + i + ":c"] || "", onChange: (x) => set("nc" + i + ":c", x), placeholder: "Comment" })))), SIGN.map(([k, lab]) => /* @__PURE__ */ h(Input, { key: k, label: lab, value: vals["x:" + k] || "", onChange: (x) => set("x:" + k, x) }))), IS_SVC ? null : /* @__PURE__ */ h(Section, { heading: "Letter date", id: "letterdate" }, /* @__PURE__ */ h(Input, { label: (DETAILS.find(([k]) => k === "ldate") || ["", "Letter date (blank = today)"])[1], value: vals["d:ldate"] || "", onChange: (x) => set("d:ldate", x), placeholder: DETAIL_HINT["ldate"] }), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Set letter date to today", onClick: () => set("d:ldate", (/* @__PURE__ */ new Date()).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })) }))), /* @__PURE__ */ h(Section, { heading: "Export and backup", id: "export" }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, color: th.text.primary, fontWeight: th.weight.semibold } }, "Report with photos"), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Download photo report (.html)", variant: "primary", onClick: () => download(stamp + "_findings.html", buildReport(vals, byKey), "text/html", false) }), /* @__PURE__ */ h(Button, { label: "Share photo report", onClick: () => {
       shareReport();
     } })), /* @__PURE__ */ h("div", { style: muted }, "One self-contained HTML file: store details, totals, every B/C finding with its comment and embedded photos, section comments, other photo evidence, non-conformance and sign-off. Open it in the phone's browser and use Print, then Save as PDF, for a PDF copy."), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, color: th.text.primary, fontWeight: th.weight.semibold, marginTop: 6 } }, "Text and spreadsheet (photo counts only)"), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Copy findings", onClick: () => copyText(buildFindings(vals, pc), "Findings") }), /* @__PURE__ */ h(Button, { label: "Download findings (.txt)", onClick: () => download(stamp + "_findings.txt", buildFindings(vals, pc), "text/plain") }), /* @__PURE__ */ h(Button, { label: "Download full CSV", onClick: () => download(stamp + "_full.csv", "\uFEFF" + buildCsv(vals, pc), "text/csv") })), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, color: th.text.primary, fontWeight: th.weight.semibold, marginTop: 6 } }, "Backup"), /* @__PURE__ */ h("div", { id: "bkstatus", "data-t": "bkstatus", style: { fontFamily: th.font.family, padding: "8px 10px", border: "1px solid " + th.border.subtle, borderRadius: th.radius.md } }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, color: !ok ? th.text.danger : th.text.secondary } }, ok ? "Autosaved on this phone" + (savedAt ? " at " + savedAt : "") + " (every change saves automatically)." : "⚠ Saving is OFF: entries and photos are lost when this page closes. Download a full backup."), /* @__PURE__ */ h("div", { "data-t": "storage", style: { ...muted, fontSize: 12, marginTop: 2, color: !ok ? th.text.danger : persist !== "granted" && persist !== "checking" ? th.text.warning : th.text.secondary } }, "Saving on this phone: " + (!ok ? "OFF" : pstat === "memory" ? "ON for entries, OFF for photos" : "ON") + " · Persistent storage: " + (persist === "granted" ? "granted" : persist === "checking" ? "checking…" : persist === "unsupported" ? "not available in this browser" : "not granted yet (install the app to help)")), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginTop: 2, color: pstat === "memory" ? th.text.danger : th.text.secondary } }, pstat === "checking" ? "Checking photo storage…" : pstat === "ok" ? "Photos: " + photos.length + " saved on this device (" + (pBytes / 1048576).toFixed(1) + " MB)" : "⚠ Photos can't be saved on this device in this browser (" + photos.length + " held until you close the page). Download the photo report or full backup before leaving."), /* @__PURE__ */ h("div", { "data-t": "bk-last", style: { fontSize: 12, marginTop: 2, color: !lastTs && saveOff ? th.text.danger : th.text.secondary } }, lastTxt, curS ? " (" + curS.short + ")" : "", nDirty ? " · " + nDirty + " change" + (nDirty > 1 ? "s" : "") + " since" : ""), bkMsg ? /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginTop: 4 } }, bkMsg) : null), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Save backup to phone", variant: "primary", onClick: () => {
       shareBackup();
@@ -1731,9 +1852,17 @@
         clearDirty(cur || "_");
         replacePhotos([]).then(() => setMsg("Cleared " + (curS ? curS.label + " " : "") + "entries and photos; store details kept. New inspection started. Other stores' drafts are untouched."));
       });
-    } }))), /* @__PURE__ */ h("div", { "data-t": "danger-zone", style: { fontFamily: th.font.family, marginTop: 28, paddingTop: 16, borderTop: "2px dashed " + th.text.danger } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, fontWeight: th.weight.semibold, color: th.text.danger, marginBottom: 4 } }, "Danger zone"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 10 } }, "Clear entries: removes every answer, comment, weight, grade, sign-off and photo entered for " + (curS ? curS.label : "the current inspection") + " (" + isoDay(vals) + ") from this phone. The checklist, the store and its store details stay. You will be asked to confirm twice."), /* @__PURE__ */ h("button", { type: "button", "data-t": "del-current", style: { ...dangerBtn, width: "100%" }, onClick: () => askDelete(cur) }, "Clear " + (curS ? curS.short + " " : "") + "entries…"), delMsg ? /* @__PURE__ */ h("div", { role: "status", style: { fontSize: 14, color: th.text.danger, marginTop: 8 } }, delMsg) : null)), /* @__PURE__ */ h(Section, { heading: "How grading works", id: "notes", collapsible: true, defaultOpen: false }, /* @__PURE__ */ h(Text, null, "The source sheet has no formulas, weights or totals. Each section ends with a GRADING line where the inspector circles A, B or C, and the report closes with an overall grade (A = Excellent, B = Needs improvement, C = Unacceptable) chosen by the inspector. The A/B/C counts on this page are simple tallies to guide that call; the official Bossa scoring method is not in the file."), /* @__PURE__ */ h(Text, null, "N/A is an addition for items that do not apply; it is not on the paper form. Portion-weight lines take three weighings (Weight 1, 2 and 3) and no grade; they count as done once all three are entered and are left out of the A/B/C tallies. The spec shown is the weight in the item name; the sheet gives no tolerance, so the average is shown without a pass/fail. Older backups with a single weight load it as Weight 1, and any old grade on a weight line is kept as a note in its comment. Menu-count lines have no A/B/C boxes on paper, so they count as done once a count is entered."), /* @__PURE__ */ h(Text, null, 'QHRM letter: the comment on each line becomes a bullet under its section in the letter, word for word, and "Mark as repeat" adds "(Repeat)" after it. Weight lines appear in the letter only when they have a comment; the three weights are added to that bullet (e.g. 160/170/170g). Section additional comments, non-conformance grades and comments, and the letter fields under Store details are used as written. Older backups without these fields still load; the new fields are simply blank.'), /* @__PURE__ */ h(Text, null, "Photos: Camera opens the phone camera and Gallery picks existing pictures (several at once). Each photo is shrunk on the phone to at most 1280 px on the longest side (JPEG quality 0.7, usually 100-300 KB) plus a small thumbnail, and kept in this browser's on-device database. The bar at the top shows how many are saved and the space they use; a red warning means this browser cannot keep photos, so download the photo report or the full backup before closing. Photos never leave the phone unless you download or share a report or backup.")), delDialog, /* @__PURE__ */ h("p", { class: "foot" }, "QHRM Checklist app v", APP_VERSION, " · works offline · entries and photos are kept only in this browser on this phone"));
+    } }))), /* @__PURE__ */ h("div", { "data-t": "danger-zone", style: { fontFamily: th.font.family, marginTop: 28, paddingTop: 16, borderTop: "2px dashed " + th.text.danger } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, fontWeight: th.weight.semibold, color: th.text.danger, marginBottom: 4 } }, "Danger zone"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 10 } }, "Clear entries: removes every answer, comment, weight, grade, sign-off and photo entered for " + (curS ? curS.label : "the current inspection") + " (" + isoDay(vals) + ") from this phone. The checklist, the store and its store details stay. You will be asked to confirm twice."), /* @__PURE__ */ h("button", { type: "button", "data-t": "del-current", style: { ...dangerBtn, width: "100%" }, onClick: () => askDelete(cur) }, "Clear " + (curS ? curS.short + " " : "") + "entries…"), delMsg ? /* @__PURE__ */ h("div", { role: "status", style: { fontSize: 14, color: th.text.danger, marginTop: 8 } }, delMsg) : null)), IS_SVC ? /* @__PURE__ */ h(Section, { heading: "How grading works", id: "notes", collapsible: true, defaultOpen: false }, /* @__PURE__ */ h(Text, null, "The Service (Operations) report has two parts, front of house and back of house, as on the two paper forms. Each section ends with a GRADING line where the inspector circles A, B or C, followed by a Suggestion line. Each part has a grading summary and closes with an overall grade (A = Excellent, B = Needs improvement, C = Unacceptable) chosen by the inspector. The forms have no formulas or scoring method, so the A/B/C counts on this page are simple tallies to guide that call; no grade is filled in automatically."), /* @__PURE__ */ h(Text, null, 'N/A is an addition for items that do not apply; it is not on the paper forms. "Recycling system in place" (Scullery section) has only A and C on the form, so it offers A, C and N/A. Front of house also grades the head office interaction report from customer; back of house grades the six non-conformance categories, as on the forms.'), /* @__PURE__ */ h(Text, null, "The Service report is kept apart from the QHRM checklist on this phone: its own entries, store details, photos, backup files (Service_...) and auto backups. Clearing or restoring one never touches the other, and a QHRM backup cannot be restored into the Service report (or the other way round)."), /* @__PURE__ */ h(Text, null, "Photos: Camera opens the phone camera and Gallery picks existing pictures (several at once). Each photo is shrunk on the phone to at most 1280 px on the longest side plus a small thumbnail, and kept in this browser's on-device database. Photos never leave the phone unless you download or share a report or backup.")) : /* @__PURE__ */ h(Section, { heading: "How grading works", id: "notes", collapsible: true, defaultOpen: false }, /* @__PURE__ */ h(Text, null, "The source sheet has no formulas, weights or totals. Each section ends with a GRADING line where the inspector circles A, B or C, and the report closes with an overall grade (A = Excellent, B = Needs improvement, C = Unacceptable) chosen by the inspector. The A/B/C counts on this page are simple tallies to guide that call; the official Bossa scoring method is not in the file."), /* @__PURE__ */ h(Text, null, "N/A is an addition for items that do not apply; it is not on the paper form. Portion-weight lines take three weighings (Weight 1, 2 and 3) and no grade; they count as done once all three are entered and are left out of the A/B/C tallies. The spec shown is the weight in the item name; the sheet gives no tolerance, so the average is shown without a pass/fail. Older backups with a single weight load it as Weight 1, and any old grade on a weight line is kept as a note in its comment. Menu-count lines have no A/B/C boxes on paper, so they count as done once a count is entered."), /* @__PURE__ */ h(Text, null, 'QHRM letter: the comment on each line becomes a bullet under its section in the letter, word for word, and "Mark as repeat" adds "(Repeat)" after it. Weight lines appear in the letter only when they have a comment; the three weights are added to that bullet (e.g. 160/170/170g). Section additional comments, non-conformance grades and comments, and the letter fields under Store details are used as written. Older backups without these fields still load; the new fields are simply blank.'), /* @__PURE__ */ h(Text, null, "Photos: Camera opens the phone camera and Gallery picks existing pictures (several at once). Each photo is shrunk on the phone to at most 1280 px on the longest side (JPEG quality 0.7, usually 100-300 KB) plus a small thumbnail, and kept in this browser's on-device database. The bar at the top shows how many are saved and the space they use; a red warning means this browser cannot keep photos, so download the photo report or the full backup before closing. Photos never leave the phone unless you download or share a report or backup.")), delDialog, /* @__PURE__ */ h("p", { class: "foot" }, IS_SVC ? "J&B Service report" : "QHRM Checklist", " app v", APP_VERSION, " · works offline · entries and photos are kept only in this browser on this phone"));
   }
   const appEl = document.getElementById("app");
   appEl.textContent = "";
-  render(/* @__PURE__ */ h(App, null), appEl);
+  function Root() {
+    const [r, setR] = useState(REPORT);
+    return /* @__PURE__ */ h(App, { key: r, onReport: (x) => {
+      applyReport(x);
+      setR(REPORT);
+    } });
+  }
+  applyReport(urlReport());
+  render(/* @__PURE__ */ h(Root, null), appEl);
 })();

@@ -66,5 +66,11 @@ All paths are relative, so it works from any sub-path. Test locally with `python
   are in Export and backup. A short red line stays in the bar if saving is off or storage is not persistent.
 - v1.1.4: the intro paragraph under the page title is no longer shown.
 - v1.1.5: the help paragraphs in Store details and Letter date are no longer shown (fields and buttons unchanged).
+- v1.2.0: second live checklist, the Service (Operations) report (front of house 32 items in 4 sections, back of house
+  51 items in 9 sections, from the two "Operations Report" forms). The start screen picks QHRM report or Service report,
+  then the store; QHRM stays the default and its flow, storage keys, photos, backups and file names are unchanged. The
+  Service report uses its own storage (localStorage `jb-service-*`, IndexedDB `jb-service-photos-v1` and
+  `jb-service-autobackups-v1`), its own Clear entries and backups (`Service_<Store>_..._backup.json`, tagged
+  `report: "service"`); a backup of one report type is refused by the other. URL `?report=service[&store=id]`.
 - v1.1.9: the in-app logo (title row and start screen) is the 2026 J&B badge from the letterhead (`jb-logo-2026.svg`,
   vector, from "2026 Jackson & Black Updated White Logo Vector.pdf") on a burgundy chip. Home-screen icon unchanged.
