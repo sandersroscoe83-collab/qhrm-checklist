@@ -72,5 +72,10 @@ All paths are relative, so it works from any sub-path. Test locally with `python
   Service report uses its own storage (localStorage `jb-service-*`, IndexedDB `jb-service-photos-v1` and
   `jb-service-autobackups-v1`), its own Clear entries and backups (`Service_<Store>_..._backup.json`, tagged
   `report: "service"`); a backup of one report type is refused by the other. URL `?report=service[&store=id]`.
+- v1.2.1: signature pads in the sign-off of both reports (QHRM and Service): "For & on behalf of Franchisor" and
+  "Snr. Store Representative", each under its full-name field, drawn with a finger, with Clear and the date/time signed.
+  Stored on the phone as PNG images under new keys only (`qhrm-signatures-v1`, `jb-service-signatures-v1`); existing
+  keys, databases and backup fields are unchanged. Backups gain an optional `signatures` field (only when signed); older
+  backups still restore. Clear entries also clears the signatures. Signatures appear in the photo report and findings.
 - v1.1.9: the in-app logo (title row and start screen) is the 2026 J&B badge from the letterhead (`jb-logo-2026.svg`,
   vector, from "2026 Jackson & Black Updated White Logo Vector.pdf") on a burgundy chip. Home-screen icon unchanged.

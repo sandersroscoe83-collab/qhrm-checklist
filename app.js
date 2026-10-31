@@ -7,7 +7,7 @@
   const useEffect = PR.useEffect;
   const useMemo = PR.useMemo;
   const useRef = PR.useRef;
-  const APP_VERSION = "1.2.0";
+  const APP_VERSION = "1.2.1";
   const TH = {
     fill: { successSubtle: "var(--okS)", warningSubtle: "var(--warnS)", dangerSubtle: "var(--badS)", secondary: "var(--fill2)" },
     text: { success: "var(--ok)", warning: "var(--warn)", danger: "var(--bad)", primary: "var(--tx)", secondary: "var(--tx2)", tertiary: "var(--tx3)", accent: "var(--acc)" },
@@ -334,7 +334,8 @@
   let RTAG = {};
   const Q_PKEY = "qhrm-store-profiles-v1";
   const SVC_DEF_F = ["name", "owner", "team"];
-  const QCFG = { SECS, AREAS, DETAILS, DETAIL_HINT, AUTO_C, NONCON, KEY, DEFAULTS, PROFILE_F, PKEY, DKEY, BKEY, CKEY, XKEY, DB_NAME, ADB_NAME };
+  let SIGKEY = "qhrm-signatures-v1";
+  const QCFG = { SECS, AREAS, DETAILS, DETAIL_HINT, AUTO_C, NONCON, KEY, DEFAULTS, PROFILE_F, PKEY, DKEY, BKEY, CKEY, XKEY, DB_NAME, ADB_NAME, SIGKEY };
   const SVC_RAW = [["FRONT OF HOUSE", "EXTERIOR", "Exterior", [["Store Signage (all interior and exterior)", "g"], ["Lighting", "g"], ["Cleanliness of car park, walkways, deck area etc.", "g"]]], ["FRONT OF HOUSE", "RESTAURANT AREA", "Restaurant area", [["Warm reception on arrival", "g"], ["Cash Desk (clean and organised)", "g"], ["Ambience (Playlist, T.V., Lights)", "g"], ["Waitering body - number and appearance", "g"], ["Waiter Demeanour and Friendliness", "g"], ["Staff uniforms - all departments - Bossa branded - good condition", "g"], ["Runners - Number and appearance", "g"], ["Waiter tool check (2-4 pens, bottle opener, float, docket book, etc.)", "g"], ["Waiter Interaction with Customers", "g"], ["Waiter time management", "g"], ["Table setup standard", "g"], ["Bathrooms", "g"]]], ["FRONT OF HOUSE", "MAIN BAR", "Main bar section", [["Ambience (Playlist, T.V. & Lighting set correctly)", "g"], ["Ventilation & Extractors", "g"], ["Barmen - number and appearance", "g"], ["Barman uniforms - Bossa branded", "g"], ["Efficient service of Barman", "g"], ["Barman Vibey & Teamwork", "g"], ["Pick up time of beverages", "g"], ["Bar tables & Counter Cleanliness", "g"], ["Correct procedures of changing ashtrays", "g"], ["Management interaction with barman & guests", "g"], ["Bar bathrooms Ladies & Gents", "g"]]], ["FRONT OF HOUSE", "MANAGEMENT", "Management", [["Management efficiency", "g"], ["Management Vibey & interactive w/customers", "g"], ["Managers proactive on the floor", "g"], ["Interaction with waitering body", "g"], ["Communication between FOH and kitchen", "g"], ["Appearance and uniform", "g"]]], ["BACK OF HOUSE", "KITCHEN TECHNICAL - CORRECT USAGE OF EQUIPMENT", "Kitchen technical - correct usage of equipment", [["Food manual - in good condition & up to date", "g"], ["Grill grids - regularly cleaned", "g"], ["Flat top", "g"], ["Oil quality in all fryers", "g"], ["Fryer - correct temperature", "g"], ["Bain marie - correct temperature", "g"], ["Hot passes on and working", "g"], ["Underbar fridges - correct temperature", "g"]]], ["BACK OF HOUSE", "BOH MANAGEMENT", "BOH management", [["Number on duty based on trade expectancy", "g"], ["Competency assessment", "g"], ["Time Management", "g"], ["Section prep sheets checked and in place", "g"], ["Communication between BOH & FOH management", "g"], ["Stock control / FIFO", "g"], ["Staff training (ongoing)", "g"]]], ["BACK OF HOUSE", "PLATING SECTION", "Plating section", [["Competency assessment", "g"], ["All plating products available (mayos, garnish, wing containers)", "g"], ["Chef blowtorch - working and filled with gas", "g"], ["Plating standard", "g"], ["Plates in warmer", "g"], ["Presentation of take-aways", "g"]]], ["BACK OF HOUSE", "GRILL SECTION", "Grill section", [["Competency assessment", "g"], ["Product on grill", "g"], ["Preparation standards", "g"], ["Grilling technique", "g"], ["Correct selection of meat cuts", "g"], ["Correct application of basting and seasoning", "g"], ["Efficiency on grill", "g"], ["Correct usage of flat top", "g"]]], ["BACK OF HOUSE", "HOT SECTION", "Hot section", [["Competency assessment", "g"], ["Preparation standard", "g"], ["Quality and standard of products", "g"]]], ["BACK OF HOUSE", "CHIPPING SECTION", "Chipping section", [["Competency assessment", "g"], ["Consistency of onion rings", "g"], ["Quality of blanched chips", "g"], ["Correct application of chip spice", "g"], ["Fryers skimmed regularly", "g"]]], ["BACK OF HOUSE", "SALAD SECTION", "Salad section", [["Competency assessment", "g"], ["Preparation standard", "g"], ["Plating standard", "g"], ["Correct layering of salads and nachos", "g"]]], ["BACK OF HOUSE", "DESSERT SECTION PRODUCTS", "Dessert section products", [["Preparation standard", "g"], ["Plating standard", "g"], ["Storage Standard", "g"], ["5lt Ice cream / Ice cream machine on and working", "g"]]], ["BACK OF HOUSE", "SCULLERY SECTION", "Scullery section", [["Efficiency", "g"], ["Cleanliness of dirties table and surrounding work area", "g"], ["Correct dirties table systems in place (glasses in crate, plates neat, etc.)", "g"], ["Dishwashing machine regularly cleaned", "g"], ["Dustbins cleanliness (regularly cleaned)", "g"], ["Recycling system in place", "a"]]]];
   const SCFG = {
     SECS: SVC_RAW.map((r, si) => ({ id: "s" + si, area: r[0], title: r[1], label: r[2], items: r[3].map((it, ii) => ({ id: "s" + si + "i" + ii, text: it[0], t: it[1], sg: it[2] || "" })) })),
@@ -352,7 +353,8 @@
     CKEY: "jb-service-collapsed-v1",
     XKEY: "jb-service-dirty-v1",
     DB_NAME: "jb-service-photos-v1",
-    ADB_NAME: "jb-service-autobackups-v1"
+    ADB_NAME: "jb-service-autobackups-v1",
+    SIGKEY: "jb-service-signatures-v1"
   };
   function applyReport(r) {
     REPORT = r === "service" ? "service" : "qhrm";
@@ -374,6 +376,7 @@
     XKEY = c.XKEY;
     DB_NAME = c.DB_NAME;
     ADB_NAME = c.ADB_NAME;
+    SIGKEY = c.SIGKEY;
     TOTAL = SECS.reduce((n, s) => n + s.items.length, 0);
     WITEMS = SECS.reduce((a, s) => a.concat(s.items.filter((it) => it.t === "w")), []);
     FPRE = IS_SVC ? "Service" : "QHRM";
@@ -474,7 +477,7 @@
     return k.indexOf("sec:") === 0 ? k.slice(4) : k.slice(0, k.indexOf("i"));
   }
   const REPORT_CSS = "body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:820px;margin:24px auto;padding:0 16px;line-height:1.4}h1{font-size:22px}h2{font-size:18px;margin-top:28px;border-bottom:1px solid currentColor;padding-bottom:4px}h3{font-size:15px;margin:20px 0 6px}.m{opacity:.65;font-weight:normal;font-size:13px}.kv th{text-align:left;padding:2px 12px 2px 0;font-weight:600;vertical-align:top}.f{padding:8px 0;border-top:1px dotted currentColor;page-break-inside:avoid}.c{margin-top:4px;white-space:pre-wrap}.g{display:inline-block;min-width:22px;text-align:center;border-radius:4px;font-weight:700;padding:0 4px;border:1.5px solid currentColor}.gC{border-width:3px}.ph{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}.ph img{width:calc(50% - 4px);max-width:380px;height:auto;border-radius:6px}.wt{border-collapse:collapse;width:100%;font-size:14px}.wt th,.wt td{text-align:left;padding:4px 6px;border-bottom:1px solid currentColor}.wt th{opacity:.7}@media print{body{margin:0}}";
-  function buildReport(v, byKey) {
+  function buildReport(v, byKey, sg = {}) {
     const st = stats(SECS.reduce((a, s) => a.concat(s.items), []), v);
     const imgs = (k) => {
       const ps = byKey[k] || [];
@@ -496,11 +499,11 @@
       const f = s.items.filter((it) => v[it.id + ":g"] === "B" || v[it.id + ":g"] === "C");
       const sk = "sec:" + s.id;
       const sn = v["sn:" + s.id];
-      const sg = v["sg:" + s.id];
+      const sg2 = v["sg:" + s.id];
       const sp = (byKey[sk] || []).length;
-      if (!f.length && !sn && !sp && sg !== "B" && sg !== "C") continue;
+      if (!f.length && !sn && !sp && sg2 !== "B" && sg2 !== "C") continue;
       any = true;
-      H.push("<h3>" + esc(s.title) + ' <span class="m">' + esc(s.area) + " &middot; section grade " + esc(sg || "-") + "</span></h3>");
+      H.push("<h3>" + esc(s.title) + ' <span class="m">' + esc(s.area) + " &middot; section grade " + esc(sg2 || "-") + "</span></h3>");
       for (const it of f) {
         used[it.id] = true;
         const g = v[it.id + ":g"];
@@ -536,11 +539,11 @@
       H.push("<h2>Other photo evidence</h2>");
       for (const k of other) H.push('<div class="f">' + esc(KEYLABEL[k] || k) + (v[k + ":g"] ? ' <span class="m">grade ' + esc(GL[v[k + ":g"]] || "") + "</span>" : "") + (cmR(v, k) ? '<div class="c">' + esc(cmR(v, k)) + "</div>" : "") + imgs(k) + "</div>");
     }
-    H.push('<h2>Sign-off</h2><table class="kv">' + SIGN.map(([k, lab]) => "<tr><th>" + esc(lab) + "</th><td>" + esc(v["x:" + k] || "") + "</td></tr>").join("") + "</table>");
+    H.push('<h2>Sign-off</h2><table class="kv">' + SIGN.map(([k, lab]) => "<tr><th>" + esc(lab) + "</th><td>" + esc(v["x:" + k] || "") + "</td></tr>" + SIG_WHO.filter((w) => w[1] === k && sg[w[0]]).map((w) => "<tr><th>Signature (" + esc(w[2]) + ')</th><td><img src="' + sg[w[0]].png + '" alt="Signature" style="height:70px;max-width:100%;border-bottom:1px solid #999"><div class="m">Signed ' + esc(sg[w[0]].ts ? fmtSig(sg[w[0]].ts) : "") + "</div></td></tr>").join("")).join("") + "</table>");
     H.push('<p class="m">Generated ' + esc((/* @__PURE__ */ new Date()).toLocaleString()) + "</p></body></html>");
     return H.join("\n");
   }
-  function buildFindings(v, pc = {}) {
+  function buildFindings(v, pc = {}, sg = {}) {
     const all = stats(SECS.reduce((a, s) => a.concat(s.items), []), v);
     const L = [IS_SVC ? "SERVICE (OPERATIONS) REPORT - FINDINGS (B / C)" : "QHRM INSPECTION - FINDINGS (B / C)"];
     for (const [k, lab] of DETAILS) L.push(lab + ": " + (v["d:" + k] || ""));
@@ -557,11 +560,11 @@
     }
     for (const s of SECS) {
       const f = s.items.filter((it) => v[it.id + ":g"] === "B" || v[it.id + ":g"] === "C");
-      const sg = v["sg:" + s.id];
+      const sg2 = v["sg:" + s.id];
       const sn = v["sn:" + s.id];
-      if (!f.length && sg !== "B" && sg !== "C" && !sn && !pc["sec:" + s.id]) continue;
+      if (!f.length && sg2 !== "B" && sg2 !== "C" && !sn && !pc["sec:" + s.id]) continue;
       L.push("");
-      L.push("== " + s.title + " (" + s.area + ") - section grade: " + (sg || "-") + " ==");
+      L.push("== " + s.title + " (" + s.area + ") - section grade: " + (sg2 || "-") + " ==");
       for (const it of f) {
         let extra = "";
         if (pc[it.id]) extra += " [" + pc[it.id] + " photo" + (pc[it.id] > 1 ? "s" : "") + "]";
@@ -592,6 +595,12 @@
         if (v["nc" + i + ":g"] || v["nc" + i + ":c"]) L.push(n + ": " + (v["nc" + i + ":g"] || "-") + (v["nc" + i + ":c"] ? " - " + v["nc" + i + ":c"] : ""));
       });
     }
+    if (Object.keys(sg).length) {
+      L.push("");
+      L.push("== SIGN-OFF ==");
+      if (v["x:at"]) L.push("Signed at: " + v["x:at"]);
+      for (const [w, nk, lab] of SIG_WHO) L.push(lab + ": " + (v["x:" + nk] || "-") + (sg[w] ? " - signed " + (sg[w].ts ? fmtSig(sg[w].ts) : "") + " (signature in the backup / photo report)" : " - not signed"));
+    }
     return L.join("\n");
   }
   function buildCsv(v, pc = {}) {
@@ -615,6 +624,189 @@
     NONCON.forEach((n, i) => L.push(row("NON-CONFORMANCE", "", "", n, "non-conformance", v["nc" + i + ":g"] || "", v["nc" + i + ":c"] || "", "")));
     for (const [k, lab] of SIGN) L.push(row("SIGN-OFF", "", "", lab, "detail", "", v["x:" + k] || "", ""));
     return L.join("\r\n");
+  }
+  const SIG_WHO = [["fr", "frn", "For & on behalf of Franchisor"], ["sr", "srn", "Snr. Store Representative"]];
+  function fmtSig(ts) {
+    const d = new Date(ts);
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) + " " + two(d.getHours()) + ":" + two(d.getMinutes());
+  }
+  function cleanSigs(o) {
+    const out = {};
+    if (!o || typeof o !== "object") return out;
+    for (const [w] of SIG_WHO) {
+      const s = o[w];
+      if (s && typeof s.png === "string" && s.png.indexOf("data:image/png") === 0) out[w] = { png: s.png, ts: typeof s.ts === "number" ? s.ts : 0 };
+    }
+    return out;
+  }
+  function SigPad(props) {
+    const th = useGrokTheme();
+    const cv = useRef(null);
+    const st = useRef({ down: false, last: [0, 0], mid: [0, 0], out: "", id: -1 });
+    const valRef = useRef(props.value);
+    valRef.current = props.value;
+    const ctx = () => {
+      const c = cv.current;
+      return c ? c.getContext("2d") : null;
+    };
+    const paint = () => {
+      const c = cv.current;
+      if (!c) return;
+      const r = c.getBoundingClientRect();
+      const dpr = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
+      const W = Math.max(1, Math.round(r.width * dpr)), H = Math.max(1, Math.round(r.height * dpr));
+      if (c.width !== W || c.height !== H) {
+        c.width = W;
+        c.height = H;
+      }
+      const x = ctx();
+      if (!x) return;
+      x.setTransform(1, 0, 0, 1, 0, 0);
+      x.clearRect(0, 0, W, H);
+      const v2 = valRef.current;
+      if (v2 && v2.png) {
+        const im = new Image();
+        im.onload = () => {
+          if (valRef.current !== v2 || st.current.down) return;
+          const k = Math.min(W / im.width, H / im.height);
+          x.drawImage(im, 0, 0, im.width * k, im.height * k);
+        };
+        im.src = v2.png;
+      }
+    };
+    useEffect(() => {
+      paint();
+      const c = cv.current;
+      const stop = (e) => {
+        e.preventDefault();
+      };
+      if (c) {
+        c.addEventListener("touchstart", stop, { passive: false });
+        c.addEventListener("touchmove", stop, { passive: false });
+      }
+      let ro = null;
+      const W = window;
+      if (W.ResizeObserver && c) {
+        let w0 = c.getBoundingClientRect().width;
+        ro = new W.ResizeObserver(() => {
+          const w = c.getBoundingClientRect().width;
+          if (Math.abs(w - w0) > 1 && !st.current.down) {
+            w0 = w;
+            paint();
+          }
+        });
+        ro.observe(c);
+      }
+      return () => {
+        if (c) {
+          c.removeEventListener("touchstart", stop);
+          c.removeEventListener("touchmove", stop);
+        }
+        if (ro) ro.disconnect();
+      };
+    }, []);
+    const pngNow = props.value ? props.value.png : "";
+    useEffect(() => {
+      if (pngNow !== st.current.out && !st.current.down) paint();
+    }, [pngNow]);
+    const pos = (e) => {
+      const c = cv.current;
+      const r = c.getBoundingClientRect();
+      const k = c.width / (r.width || 1);
+      return [(e.clientX - r.left) * k, (e.clientY - r.top) * k];
+    };
+    const pen = (x) => {
+      const c = cv.current;
+      const k = c.width / (c.getBoundingClientRect().width || 1);
+      x.lineWidth = 2.4 * k;
+      x.lineCap = "round";
+      x.lineJoin = "round";
+      x.strokeStyle = "#1b1b1b";
+      x.fillStyle = "#1b1b1b";
+    };
+    const down = (e) => {
+      const x = ctx();
+      if (!x || e.button !== void 0 && e.button > 0) return;
+      e.preventDefault();
+      try {
+        cv.current.setPointerCapture(e.pointerId);
+      } catch (er) {
+      }
+      const s = st.current;
+      s.down = true;
+      s.id = e.pointerId;
+      const p = pos(e);
+      s.last = p;
+      s.mid = p;
+      pen(x);
+      x.beginPath();
+      x.arc(p[0], p[1], x.lineWidth / 2, 0, Math.PI * 2);
+      x.fill();
+    };
+    const move = (e) => {
+      const s = st.current;
+      if (!s.down || e.pointerId !== s.id) return;
+      e.preventDefault();
+      const x = ctx();
+      if (!x) return;
+      pen(x);
+      const evs = typeof e.getCoalescedEvents === "function" ? e.getCoalescedEvents() : [];
+      for (const ev of evs.length ? evs : [e]) {
+        const p = pos(ev);
+        const m = [(s.last[0] + p[0]) / 2, (s.last[1] + p[1]) / 2];
+        x.beginPath();
+        x.moveTo(s.mid[0], s.mid[1]);
+        x.quadraticCurveTo(s.last[0], s.last[1], m[0], m[1]);
+        x.stroke();
+        s.last = p;
+        s.mid = m;
+      }
+    };
+    const up = (e) => {
+      const s = st.current;
+      if (!s.down || e.pointerId !== s.id) return;
+      s.down = false;
+      const x = ctx();
+      const c = cv.current;
+      if (!x || !c) return;
+      pen(x);
+      x.beginPath();
+      x.moveTo(s.mid[0], s.mid[1]);
+      x.lineTo(s.last[0], s.last[1]);
+      x.stroke();
+      let out = "";
+      try {
+        out = c.toDataURL("image/png");
+      } catch (er) {
+        return;
+      }
+      s.out = out;
+      props.onChange({ png: out, ts: Date.now() });
+    };
+    const clear = () => {
+      st.current.out = "";
+      const x = ctx();
+      const c = cv.current;
+      if (x && c) {
+        x.setTransform(1, 0, 0, 1, 0, 0);
+        x.clearRect(0, 0, c.width, c.height);
+      }
+      props.onChange(null);
+    };
+    const v = props.value;
+    return /* @__PURE__ */ h("div", { "data-t": "sig-" + props.who, style: { margin: "4px 0 18px", fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { fontSize: 14, fontWeight: th.weight.semibold, color: th.text.primary, marginBottom: 6 } }, "Signature: ", props.title), /* @__PURE__ */ h("div", { style: { position: "relative", userSelect: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" } }, /* @__PURE__ */ h(
+      "canvas",
+      {
+        ref: cv,
+        "data-t": "sig-canvas",
+        "aria-label": "Signature pad: " + props.title,
+        onPointerDown: down,
+        onPointerMove: move,
+        onPointerUp: up,
+        onPointerCancel: up,
+        style: { display: "block", width: "100%", height: 170, background: "#ffffff", border: "1px solid " + (v ? th.text.primary : th.border.default), borderRadius: th.radius.md, touchAction: "none", cursor: "crosshair" }
+      }
+    ), /* @__PURE__ */ h("div", { "aria-hidden": "true", style: { position: "absolute", left: 16, right: 16, bottom: 38, borderBottom: "1px dashed #b9a48f", pointerEvents: "none" } }), /* @__PURE__ */ h("div", { "aria-hidden": "true", style: { position: "absolute", left: 16, bottom: 42, fontSize: 18, color: "#b9a48f", pointerEvents: "none" } }, "✕"), v ? null : /* @__PURE__ */ h("div", { "aria-hidden": "true", style: { position: "absolute", left: 0, right: 0, top: 54, textAlign: "center", fontSize: 14, color: th.text.tertiary, pointerEvents: "none" } }, "Sign here with your finger")), /* @__PURE__ */ h("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginTop: 6 } }, /* @__PURE__ */ h("span", { "data-t": "sig-when", style: { fontSize: 13, color: v ? th.text.secondary : th.text.tertiary } }, v ? "Signed " + (v.ts ? fmtSig(v.ts) : "") + (props.name ? " · " + props.name : "") : "Not signed yet"), /* @__PURE__ */ h("button", { type: "button", "data-t": "sig-clear", disabled: !v, onClick: clear, style: { flex: "0 0 auto", minHeight: 40, minWidth: 76, padding: "0 14px", borderRadius: th.radius.md, border: "1px solid " + th.border.default, background: "transparent", color: v ? th.text.primary : th.text.tertiary, fontFamily: th.font.family, fontSize: 15, cursor: v ? "pointer" : "default", opacity: v ? 1 : 0.6 } }, "Clear")));
   }
   function GradeRow(props) {
     const th = useGrokTheme();
@@ -763,6 +955,45 @@
     const [bkMsg, setBkMsg] = useState("");
     const curRef = useRef("");
     curRef.current = cur;
+    const [sigAll, setSigAll] = useState(() => {
+      const o = readJson(SIGKEY) || {};
+      const r = {};
+      for (const k of Object.keys(o)) {
+        const c = cleanSigs(o[k]);
+        if (Object.keys(c).length) r[k] = c;
+      }
+      return r;
+    });
+    const sigRef = useRef(sigAll);
+    sigRef.current = sigAll;
+    const sigsOf = (st) => sigRef.current[st || "_"] || {};
+    const curSigs = sigAll[cur || "_"] || {};
+    const putSigs = (st, sg) => {
+      const next = { ...sigRef.current };
+      const sk = st || "_";
+      if (sg && Object.keys(sg).length) next[sk] = sg;
+      else delete next[sk];
+      sigRef.current = next;
+      setSigAll(next);
+      try {
+        if (Object.keys(next).length) window.localStorage.setItem(SIGKEY, JSON.stringify(next));
+        else window.localStorage.removeItem(SIGKEY);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    };
+    const [sigErr, setSigErr] = useState("");
+    const setSig = (who, s) => {
+      const m = { ...sigsOf(cur) };
+      if (s) m[who] = s;
+      else delete m[who];
+      setSigErr(putSigs(cur, m) ? "" : "The signature could not be saved on this phone (storage full?). Save a backup file.");
+    };
+    const sigField = (st) => {
+      const s = sigsOf(st);
+      return Object.keys(s).length ? { signatures: s } : {};
+    };
     useEffect(() => {
       const t = window.setInterval(() => setNow(Date.now()), 3e4);
       return () => window.clearInterval(t);
@@ -1071,10 +1302,12 @@
           setVals(bv);
           setOpen({});
           setNotes({});
+          const bsg = cleanSigs(o["signatures"]);
+          putSigs(target, bsg);
           setBusy("Restoring " + list.length + " photos…");
           const ok2 = await replacePhotos(list, target);
           setBusy("");
-          setMsg("Backup restored for " + sLabel(target) + ": entries and " + list.length + " photo(s)" + (ok2 ? "." : ". The photos could not be saved on this device, so keep the backup file.") + (target !== cur ? " Switched to " + sLabel(target) + (cur ? "; the " + sLabel(cur) + " entries are kept." : ".") : ""));
+          setMsg("Backup restored for " + sLabel(target) + ": entries and " + list.length + " photo(s)" + (Object.keys(bsg).length ? " and " + Object.keys(bsg).length + " signature(s)" : "") + (ok2 ? "." : ". The photos could not be saved on this device, so keep the backup file.") + (target !== cur ? " Switched to " + sLabel(target) + (cur ? "; the " + sLabel(cur) + " entries are kept." : ".") : ""));
         } else {
           const bv = migrate(o);
           const target = backupTarget(bv, "");
@@ -1266,7 +1499,7 @@
       }
     };
     const stamp = FPRE + "_" + storeFile(vals) + "_" + isoDay(vals);
-    const backupText = () => JSON.stringify({ ...RTAG, v: 2, store: cur, storeName: curS ? curS.label : vals["d:name"] || "", vals, photos });
+    const backupText = () => JSON.stringify({ ...RTAG, v: 2, store: cur, storeName: curS ? curS.label : vals["d:name"] || "", vals, photos, ...sigField(cur) });
     const markBackedUp = () => {
       const t = Date.now();
       saveLastBk({ ...lastBk, [cur || "_"]: t });
@@ -1338,11 +1571,13 @@
     const takeSnap = async (st, v, ps, why) => {
       const db = adbRef.current;
       const sk = st || "_";
-      if (!db || entryCount(v) === 0 && ps.length === 0) return false;
-      const sig = hashStr(JSON.stringify(v) + "|" + ps.map((p) => p.id).join(","));
+      const sgs = sigsOf(st);
+      const nsg = Object.keys(sgs).length;
+      if (!db || entryCount(v) === 0 && ps.length === 0 && nsg === 0) return false;
+      const sig = hashStr(JSON.stringify(v) + "|" + ps.map((p) => p.id).join(",") + (nsg ? "|" + hashStr(JSON.stringify(sgs)) : ""));
       if (lastSigRef.current[sk] === sig) return false;
       const s = storeOf(st);
-      const text = JSON.stringify({ ...RTAG, v: 2, store: st, storeName: s ? s.label : v["d:name"] || "", vals: v, photos: ps });
+      const text = JSON.stringify({ ...RTAG, v: 2, store: st, storeName: s ? s.label : v["d:name"] || "", vals: v, photos: ps, ...sigField(st) });
       const ts = Date.now();
       const meta = { id: sk + "|" + ts + "|" + newId(), st: sk, ts, why, n: entryCount(v), p: ps.length, sig };
       const put = () => aTx(db, "readwrite", (m, s2) => {
@@ -1525,7 +1760,7 @@
       const d = delInfo(st);
       const s = storeOf(st);
       const ps = allPhotos.filter((x) => (x.st || "") === st);
-      download(FPRE + "_" + (s ? s.file : "Store") + "_" + d.date + "_backup.json", JSON.stringify({ ...RTAG, v: 2, store: st, storeName: s ? s.label : d.v["d:name"] || "", vals: d.v, photos: ps }), "application/json", false);
+      download(FPRE + "_" + (s ? s.file : "Store") + "_" + d.date + "_backup.json", JSON.stringify({ ...RTAG, v: 2, store: st, storeName: s ? s.label : d.v["d:name"] || "", vals: d.v, photos: ps, ...sigField(st) }), "application/json", false);
     };
     const doDelete = async (st) => {
       const d = delInfo(st);
@@ -1544,6 +1779,8 @@
           okDel = false;
         }
       }
+      const nSig = Object.keys(sigsOf(st)).length;
+      if (nSig && !putSigs(st, null)) okDel = false;
       const gone = allRef.current.filter((x) => (x.st || "") === st);
       const keep = allRef.current.filter((x) => (x.st || "") !== st);
       allRef.current = keep;
@@ -1580,7 +1817,7 @@
       clearDirty(st || "_");
       setDelT(null);
       setDelTxt("");
-      setDelMsg("Entries cleared" + (isCur ? "" : " for " + d.label) + ": " + d.items + " item" + (d.items === 1 ? "" : "s") + " and " + d.p + " photo" + (d.p === 1 ? "" : "s") + " removed. Store details kept." + (okDel ? "" : " Warning: some data could not be removed from device storage."));
+      setDelMsg("Entries cleared" + (isCur ? "" : " for " + d.label) + ": " + d.items + " item" + (d.items === 1 ? "" : "s") + " and " + d.p + " photo" + (d.p === 1 ? "" : "s") + " removed" + (nSig ? ", signatures cleared" : "") + ". Store details kept." + (okDel ? "" : " Warning: some data could not be removed from device storage."));
       if (isCur) scrollToEl("checklist");
     };
     const delDialog = (() => {
@@ -1603,7 +1840,7 @@
     const shareReport = async () => {
       const name = stamp + "_findings.html";
       try {
-        const file = new File([buildReport(vals, byKey)], name, { type: "text/html" });
+        const file = new File([buildReport(vals, byKey, curSigs)], name, { type: "text/html" });
         const nav = navigator;
         if (typeof nav.share === "function" && nav.canShare && nav.canShare({ files: [file] })) {
           await nav.share({ files: [file], title: FPRE + " findings" });
@@ -1649,13 +1886,17 @@
       } }), /* @__PURE__ */ h("span", { style: { ...muted, fontSize: 12 } }, vi + 1, " / ", ps.length, " · ", new Date(cur2.ts).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })))) : null);
     };
     const gTone = (g) => g ? { text: g, tone: g === "A" ? "success" : g === "B" ? "warning" : "danger" } : "-";
+    const signBlock = () => /* @__PURE__ */ h("div", { "data-t": "signoff" }, SIGN.map(([k, lab]) => {
+      const w = SIG_WHO.find((x) => x[1] === k);
+      return /* @__PURE__ */ h("div", { key: k }, /* @__PURE__ */ h(Input, { label: lab, value: vals["x:" + k] || "", onChange: (x) => set("x:" + k, x) }), w ? /* @__PURE__ */ h(SigPad, { key: (cur || "_") + w[0], who: w[0], title: w[2], name: vals["x:" + k] || "", value: curSigs[w[0]], onChange: (s) => setSig(w[0], s) }) : null);
+    }), sigErr ? /* @__PURE__ */ h("div", { class: "note", role: "alert", style: { borderColor: th.text.danger } }, sigErr) : null);
     const svcTable = (area, extra) => /* @__PURE__ */ h(Table, { columns: ["Section", "Done", "A / B / C", "Grade"], rows: SECS.filter((s) => s.area === area).map((s) => {
       const i = SECS.indexOf(s);
       return [s.label, secStats[i].done + "/" + secStats[i].total, secStats[i].A + " / " + secStats[i].B + " / " + secStats[i].C, gTone(vals["sg:" + s.id] || "")];
     }).concat(extra) });
     const partHead = { fontSize: 12, letterSpacing: "0.06em", color: th.text.tertiary, fontWeight: th.weight.semibold, margin: "6px 0 2px", fontFamily: th.font.family };
     const gHead = { fontSize: 15, fontWeight: th.weight.semibold, color: th.text.primary, margin: "18px 0 6px" };
-    const svcGrad = () => /* @__PURE__ */ h(Section, { heading: "Gradings and sign-off", id: "gradings" }, /* @__PURE__ */ h("div", { "data-t": "svc-grad-foh", style: partHead }, "FRONT OF HOUSE"), svcTable("FRONT OF HOUSE", [["Head office interaction report from customer", "", "", gTone(vals["ho:g"] || "")]]), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { "data-t": "svc-ho", style: { ...gHead, marginTop: 4 } }, "Head office interaction report from customer"), /* @__PURE__ */ h(GradeRow, { value: vals["ho:g"] || "", na: false, onPick: (x) => set("ho:g", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["ho:c"] || "", onChange: (x) => set("ho:c", x), placeholder: "Customer feedback reported to head office" }), /* @__PURE__ */ h("div", { style: gHead }, "Overall grading: Store Operational Standards (front of house)"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 8 } }, "A = Excellent, B = Needs improvement, C = Unacceptable"), /* @__PURE__ */ h(GradeRow, { value: vals["ov"] || "", na: false, onPick: (x) => set("ov", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["ovn"] || "", onChange: (x) => set("ovn", x), placeholder: "Other comments" })), /* @__PURE__ */ h("div", { "data-t": "svc-grad-boh", style: { ...partHead, marginTop: 22 } }, "BACK OF HOUSE"), svcTable("BACK OF HOUSE", []), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { ...gHead, marginTop: 4 } }, "Overall grading: Store Operational Standards (back of house)"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 8 } }, "A = Excellent, B = Needs improvement, C = Unacceptable"), /* @__PURE__ */ h(GradeRow, { value: vals["ovb"] || "", na: false, onPick: (x) => set("ovb", x) }), /* @__PURE__ */ h("div", { style: gHead }, "Comments on operational standards and non-conformance"), NONCON.map((n, i) => /* @__PURE__ */ h("div", { key: n, style: { padding: "14px 0", borderTop: "1px solid " + th.border.subtle } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, color: th.text.primary, marginBottom: 8 } }, n), /* @__PURE__ */ h(GradeRow, { value: vals["nc" + i + ":g"] || "", na: false, onPick: (x) => set("nc" + i + ":g", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["nc" + i + ":c"] || "", onChange: (x) => set("nc" + i + ":c", x), placeholder: "Comment" }))), /* @__PURE__ */ h("div", { style: gHead }, "Additional comments"), /* @__PURE__ */ h(NoteBox, { value: vals["ovbn"] || "", onChange: (x) => set("ovbn", x), placeholder: "Additional comments" })), /* @__PURE__ */ h("div", { style: { ...partHead, marginTop: 22 } }, "SIGN-OFF"), SIGN.map(([k, lab]) => /* @__PURE__ */ h(Input, { key: k, label: lab, value: vals["x:" + k] || "", onChange: (x) => set("x:" + k, x) })));
+    const svcGrad = () => /* @__PURE__ */ h(Section, { heading: "Gradings and sign-off", id: "gradings" }, /* @__PURE__ */ h("div", { "data-t": "svc-grad-foh", style: partHead }, "FRONT OF HOUSE"), svcTable("FRONT OF HOUSE", [["Head office interaction report from customer", "", "", gTone(vals["ho:g"] || "")]]), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { "data-t": "svc-ho", style: { ...gHead, marginTop: 4 } }, "Head office interaction report from customer"), /* @__PURE__ */ h(GradeRow, { value: vals["ho:g"] || "", na: false, onPick: (x) => set("ho:g", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["ho:c"] || "", onChange: (x) => set("ho:c", x), placeholder: "Customer feedback reported to head office" }), /* @__PURE__ */ h("div", { style: gHead }, "Overall grading: Store Operational Standards (front of house)"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 8 } }, "A = Excellent, B = Needs improvement, C = Unacceptable"), /* @__PURE__ */ h(GradeRow, { value: vals["ov"] || "", na: false, onPick: (x) => set("ov", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["ovn"] || "", onChange: (x) => set("ovn", x), placeholder: "Other comments" })), /* @__PURE__ */ h("div", { "data-t": "svc-grad-boh", style: { ...partHead, marginTop: 22 } }, "BACK OF HOUSE"), svcTable("BACK OF HOUSE", []), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { ...gHead, marginTop: 4 } }, "Overall grading: Store Operational Standards (back of house)"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 8 } }, "A = Excellent, B = Needs improvement, C = Unacceptable"), /* @__PURE__ */ h(GradeRow, { value: vals["ovb"] || "", na: false, onPick: (x) => set("ovb", x) }), /* @__PURE__ */ h("div", { style: gHead }, "Comments on operational standards and non-conformance"), NONCON.map((n, i) => /* @__PURE__ */ h("div", { key: n, style: { padding: "14px 0", borderTop: "1px solid " + th.border.subtle } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, color: th.text.primary, marginBottom: 8 } }, n), /* @__PURE__ */ h(GradeRow, { value: vals["nc" + i + ":g"] || "", na: false, onPick: (x) => set("nc" + i + ":g", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["nc" + i + ":c"] || "", onChange: (x) => set("nc" + i + ":c", x), placeholder: "Comment" }))), /* @__PURE__ */ h("div", { style: gHead }, "Additional comments"), /* @__PURE__ */ h(NoteBox, { value: vals["ovbn"] || "", onChange: (x) => set("ovbn", x), placeholder: "Additional comments" })), /* @__PURE__ */ h("div", { style: { ...partHead, marginTop: 22 } }, "SIGN-OFF"), signBlock());
     const switchRef = useRef(doSwitch);
     switchRef.current = doSwitch;
     const saveNow = () => {
@@ -1816,9 +2057,9 @@
           return [s.label, secStats[i].done + "/" + secStats[i].total, secStats[i].A + " / " + secStats[i].B + " / " + secStats[i].C, g ? { text: g, tone: g === "A" ? "success" : g === "B" ? "warning" : "danger" } : "-"];
         })
       }
-    ), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, fontWeight: th.weight.semibold, color: th.text.primary, margin: "4px 0 4px" } }, "Overall grading: Store Operational Standards"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 8 } }, "A = Excellent, B = Needs improvement, C = Unacceptable"), /* @__PURE__ */ h(GradeRow, { value: vals["ov"] || "", na: false, onPick: (x) => set("ov", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["ovn"] || "", onChange: (x) => set("ovn", x), placeholder: "Comments on operational standards and non-conformance" }), NONCON.map((n, i) => /* @__PURE__ */ h("div", { key: n, style: { padding: "14px 0", borderTop: "1px solid " + th.border.subtle, marginTop: i === 0 ? 14 : 0 } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, color: th.text.primary, marginBottom: 8 } }, n), /* @__PURE__ */ h(GradeRow, { value: vals["nc" + i + ":g"] || "", na: false, onPick: (x) => set("nc" + i + ":g", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["nc" + i + ":c"] || "", onChange: (x) => set("nc" + i + ":c", x), placeholder: "Comment" })))), SIGN.map(([k, lab]) => /* @__PURE__ */ h(Input, { key: k, label: lab, value: vals["x:" + k] || "", onChange: (x) => set("x:" + k, x) }))), IS_SVC ? null : /* @__PURE__ */ h(Section, { heading: "Letter date", id: "letterdate" }, /* @__PURE__ */ h(Input, { label: (DETAILS.find(([k]) => k === "ldate") || ["", "Letter date (blank = today)"])[1], value: vals["d:ldate"] || "", onChange: (x) => set("d:ldate", x), placeholder: DETAIL_HINT["ldate"] }), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Set letter date to today", onClick: () => set("d:ldate", (/* @__PURE__ */ new Date()).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })) }))), /* @__PURE__ */ h(Section, { heading: "Export and backup", id: "export" }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, color: th.text.primary, fontWeight: th.weight.semibold } }, "Report with photos"), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Download photo report (.html)", variant: "primary", onClick: () => download(stamp + "_findings.html", buildReport(vals, byKey), "text/html", false) }), /* @__PURE__ */ h(Button, { label: "Share photo report", onClick: () => {
+    ), /* @__PURE__ */ h("div", { style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, fontWeight: th.weight.semibold, color: th.text.primary, margin: "4px 0 4px" } }, "Overall grading: Store Operational Standards"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 8 } }, "A = Excellent, B = Needs improvement, C = Unacceptable"), /* @__PURE__ */ h(GradeRow, { value: vals["ov"] || "", na: false, onPick: (x) => set("ov", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["ovn"] || "", onChange: (x) => set("ovn", x), placeholder: "Comments on operational standards and non-conformance" }), NONCON.map((n, i) => /* @__PURE__ */ h("div", { key: n, style: { padding: "14px 0", borderTop: "1px solid " + th.border.subtle, marginTop: i === 0 ? 14 : 0 } }, /* @__PURE__ */ h("div", { style: { fontSize: 15, color: th.text.primary, marginBottom: 8 } }, n), /* @__PURE__ */ h(GradeRow, { value: vals["nc" + i + ":g"] || "", na: false, onPick: (x) => set("nc" + i + ":g", x) }), /* @__PURE__ */ h(NoteBox, { value: vals["nc" + i + ":c"] || "", onChange: (x) => set("nc" + i + ":c", x), placeholder: "Comment" })))), signBlock()), IS_SVC ? null : /* @__PURE__ */ h(Section, { heading: "Letter date", id: "letterdate" }, /* @__PURE__ */ h(Input, { label: (DETAILS.find(([k]) => k === "ldate") || ["", "Letter date (blank = today)"])[1], value: vals["d:ldate"] || "", onChange: (x) => set("d:ldate", x), placeholder: DETAIL_HINT["ldate"] }), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Set letter date to today", onClick: () => set("d:ldate", (/* @__PURE__ */ new Date()).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })) }))), /* @__PURE__ */ h(Section, { heading: "Export and backup", id: "export" }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, color: th.text.primary, fontWeight: th.weight.semibold } }, "Report with photos"), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Download photo report (.html)", variant: "primary", onClick: () => download(stamp + "_findings.html", buildReport(vals, byKey, curSigs), "text/html", false) }), /* @__PURE__ */ h(Button, { label: "Share photo report", onClick: () => {
       shareReport();
-    } })), /* @__PURE__ */ h("div", { style: muted }, "One self-contained HTML file: store details, totals, every B/C finding with its comment and embedded photos, section comments, other photo evidence, non-conformance and sign-off. Open it in the phone's browser and use Print, then Save as PDF, for a PDF copy."), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, color: th.text.primary, fontWeight: th.weight.semibold, marginTop: 6 } }, "Text and spreadsheet (photo counts only)"), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Copy findings", onClick: () => copyText(buildFindings(vals, pc), "Findings") }), /* @__PURE__ */ h(Button, { label: "Download findings (.txt)", onClick: () => download(stamp + "_findings.txt", buildFindings(vals, pc), "text/plain") }), /* @__PURE__ */ h(Button, { label: "Download full CSV", onClick: () => download(stamp + "_full.csv", "\uFEFF" + buildCsv(vals, pc), "text/csv") })), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, color: th.text.primary, fontWeight: th.weight.semibold, marginTop: 6 } }, "Backup"), /* @__PURE__ */ h("div", { id: "bkstatus", "data-t": "bkstatus", style: { fontFamily: th.font.family, padding: "8px 10px", border: "1px solid " + th.border.subtle, borderRadius: th.radius.md } }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, color: !ok ? th.text.danger : th.text.secondary } }, ok ? "Autosaved on this phone" + (savedAt ? " at " + savedAt : "") + " (every change saves automatically)." : "⚠ Saving is OFF: entries and photos are lost when this page closes. Download a full backup."), /* @__PURE__ */ h("div", { "data-t": "storage", style: { ...muted, fontSize: 12, marginTop: 2, color: !ok ? th.text.danger : persist !== "granted" && persist !== "checking" ? th.text.warning : th.text.secondary } }, "Saving on this phone: " + (!ok ? "OFF" : pstat === "memory" ? "ON for entries, OFF for photos" : "ON") + " · Persistent storage: " + (persist === "granted" ? "granted" : persist === "checking" ? "checking…" : persist === "unsupported" ? "not available in this browser" : "not granted yet (install the app to help)")), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginTop: 2, color: pstat === "memory" ? th.text.danger : th.text.secondary } }, pstat === "checking" ? "Checking photo storage…" : pstat === "ok" ? "Photos: " + photos.length + " saved on this device (" + (pBytes / 1048576).toFixed(1) + " MB)" : "⚠ Photos can't be saved on this device in this browser (" + photos.length + " held until you close the page). Download the photo report or full backup before leaving."), /* @__PURE__ */ h("div", { "data-t": "bk-last", style: { fontSize: 12, marginTop: 2, color: !lastTs && saveOff ? th.text.danger : th.text.secondary } }, lastTxt, curS ? " (" + curS.short + ")" : "", nDirty ? " · " + nDirty + " change" + (nDirty > 1 ? "s" : "") + " since" : ""), bkMsg ? /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginTop: 4 } }, bkMsg) : null), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Save backup to phone", variant: "primary", onClick: () => {
+    } })), /* @__PURE__ */ h("div", { style: muted }, "One self-contained HTML file: store details, totals, every B/C finding with its comment and embedded photos, section comments, other photo evidence, non-conformance and sign-off. Open it in the phone's browser and use Print, then Save as PDF, for a PDF copy."), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, color: th.text.primary, fontWeight: th.weight.semibold, marginTop: 6 } }, "Text and spreadsheet (photo counts only)"), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Copy findings", onClick: () => copyText(buildFindings(vals, pc, curSigs), "Findings") }), /* @__PURE__ */ h(Button, { label: "Download findings (.txt)", onClick: () => download(stamp + "_findings.txt", buildFindings(vals, pc, curSigs), "text/plain") }), /* @__PURE__ */ h(Button, { label: "Download full CSV", onClick: () => download(stamp + "_full.csv", "\uFEFF" + buildCsv(vals, pc), "text/csv") })), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 14, color: th.text.primary, fontWeight: th.weight.semibold, marginTop: 6 } }, "Backup"), /* @__PURE__ */ h("div", { id: "bkstatus", "data-t": "bkstatus", style: { fontFamily: th.font.family, padding: "8px 10px", border: "1px solid " + th.border.subtle, borderRadius: th.radius.md } }, /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, color: !ok ? th.text.danger : th.text.secondary } }, ok ? "Autosaved on this phone" + (savedAt ? " at " + savedAt : "") + " (every change saves automatically)." : "⚠ Saving is OFF: entries and photos are lost when this page closes. Download a full backup."), /* @__PURE__ */ h("div", { "data-t": "storage", style: { ...muted, fontSize: 12, marginTop: 2, color: !ok ? th.text.danger : persist !== "granted" && persist !== "checking" ? th.text.warning : th.text.secondary } }, "Saving on this phone: " + (!ok ? "OFF" : pstat === "memory" ? "ON for entries, OFF for photos" : "ON") + " · Persistent storage: " + (persist === "granted" ? "granted" : persist === "checking" ? "checking…" : persist === "unsupported" ? "not available in this browser" : "not granted yet (install the app to help)")), /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginTop: 2, color: pstat === "memory" ? th.text.danger : th.text.secondary } }, pstat === "checking" ? "Checking photo storage…" : pstat === "ok" ? "Photos: " + photos.length + " saved on this device (" + (pBytes / 1048576).toFixed(1) + " MB)" : "⚠ Photos can't be saved on this device in this browser (" + photos.length + " held until you close the page). Download the photo report or full backup before leaving."), /* @__PURE__ */ h("div", { "data-t": "bk-last", style: { fontSize: 12, marginTop: 2, color: !lastTs && saveOff ? th.text.danger : th.text.secondary } }, lastTxt, curS ? " (" + curS.short + ")" : "", nDirty ? " · " + nDirty + " change" + (nDirty > 1 ? "s" : "") + " since" : ""), bkMsg ? /* @__PURE__ */ h("div", { style: { ...muted, fontSize: 12, marginTop: 4 } }, bkMsg) : null), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8 } }, /* @__PURE__ */ h(Button, { label: "Save backup to phone", variant: "primary", onClick: () => {
       shareBackup();
     } }), /* @__PURE__ */ h(Button, { label: "Download full backup (with photos)", onClick: () => doBackup() }), /* @__PURE__ */ h(Button, { label: "Copy backup (entries only, no photos)", onClick: () => copyText(JSON.stringify(vals), "Backup (entries only, photos excluded)") })), /* @__PURE__ */ h("div", { style: muted }, lastTxt, curS ? " (" + curS.short + ")" : "", ". The full backup is a .json file containing every entry and every photo. The copied text backup holds entries only and excludes photos. Save backup to phone opens the share sheet so you can send the full backup to OneDrive, WhatsApp or email (or save it to Files); where sharing is not available it downloads instead."), /* @__PURE__ */ h("div", { "data-t": "autobackups", style: { fontFamily: th.font.family } }, /* @__PURE__ */ h("div", { style: { fontSize: 14, fontWeight: th.weight.semibold, color: th.text.primary, marginTop: 6 } }, "Auto backups"), /* @__PURE__ */ h("div", { style: { ...muted, marginBottom: 6 } }, "Kept automatically inside the app on this phone (every 5 minutes while you work, when you leave the app, and before Clear entries or a restore); the last " + AUTO_KEEP + " per store, with photos. They are lost if the browser's site data is cleared, so still save a backup file now and then."), snaps.filter((sn) => sn.st === sk0).length === 0 ? /* @__PURE__ */ h("div", { style: { ...muted } }, "No auto backups yet" + (curS ? " for " + curS.short : "") + ".") : null, snaps.filter((sn) => sn.st === sk0).map((sn) => /* @__PURE__ */ h("div", { key: sn.id, "data-t": "snap", style: { padding: "10px 0", borderTop: "1px solid " + th.border.subtle } }, /* @__PURE__ */ h("div", { style: { fontSize: 14, color: th.text.primary } }, new Date(sn.ts).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }), /* @__PURE__ */ h("span", { style: { ...muted, fontSize: 12 } }, " · " + sn.n + " entr" + (sn.n === 1 ? "y" : "ies") + " · " + sn.p + " photo" + (sn.p === 1 ? "" : "s") + (sn.why !== "auto" ? " · " + sn.why : ""))), /* @__PURE__ */ h("div", { style: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 } }, /* @__PURE__ */ h(Button, { label: snapArm === sn.id ? "Tap again to restore (replaces current entries and photos)" : "Restore", onClick: () => {
       if (snapArm !== sn.id) {
